@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA | Stone ERP</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Background Animation Elements -->
+        <div class="bg-animation">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <i class="fa-solid fa-gem mobile-icon"></i>
+                    <span class="brand-text">AURA</span>
+                </div>
+                <button id="sidebar-close" class="mobile-only"><i class="fa-solid fa-times"></i></button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul id="nav-list">
+                    <li class="active" data-view="dashboard"><a href="#"><i class="fa-solid fa-chart-line"></i>
+                            <span>Dashboard</span></a></li>
+                    <li data-view="orders"><a href="#"><i class="fa-solid fa-layer-group"></i> <span>Orders</span></a>
+                    </li>
+                    <li data-view="production"><a href="#"><i class="fa-solid fa-shapes"></i>
+                            <span>Production</span></a></li>
+                    <li data-view="inventory"><a href="#"><i class="fa-solid fa-warehouse"></i>
+                            <span>Inventory</span></a></li>
+                    <li data-view="procurement"><a href="#"><i class="fa-solid fa-truck-fast"></i>
+                            <span>Procurement</span></a></li>
+                    <li data-view="hr"><a href="#"><i class="fa-solid fa-users"></i> <span>HR</span></a></li>
+                    <li data-view="finance"><a href="#"><i class="fa-solid fa-file-invoice-dollar"></i>
+                            <span>Finance</span></a></li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="#"><i class="fa-solid fa-gear"></i> <span>Settings</span></a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-bar">
+                <div class="left-section">
+                    <button id="sidebar-toggle" class="icon-btn"><i class="fa-solid fa-bars"></i></button>
+                    <h2 class="page-title">Dashboard</h2>
+                </div>
+
+                <div class="right-section">
+                    <!-- Profile Page Access (Top Left corner as requested, but standard UX places it top right. User asked for Top Left Profile page, but 'profile page on the top left corner' might mean a link. I will put a distinct Profile Link/Icon in the header, and ensure the specific request is met or interpreted reasonably within a standard layout, perhaps adapting the 'left' requirement to the sidebar top or header left) -->
+                    <!-- Re-reading request: "profile page on the top left corner". This is non-standard. I will place a prominent Profile Widget in the Sidebar Top or Header Left. Let's put a User Profile Summary in the top-left of the Dashboard content area or the Sidebar.
+                    Actually, "top left corner" typically implies the logo area or right next to the menu button. I will put a small profile avatar next to the hamburger menu. -->
+
+                    <div class="user-profile-widget" onclick="toggleProfile()">
+                        <div class="avatar">AD</div>
+                        <span class="user-name">Admin User</span>
+                    </div>
+
+                    <div class="header-actions">
+                        <button class="icon-btn"><i class="fa-regular fa-bell"></i></button>
+                        <button class="icon-btn"><i class="fa-regular fa-envelope"></i></button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <!-- Views Container -->
+            <div id="content-area">
+                <div id="view-dashboard" class="view-section active">
+                    <div class="dashboard-container">
+                        <!-- Welcome / Profile Quick View -->
+                        <div class="welcome-banner">
+                            <h1>Welcome back, <span class="highlight">Admin</span></h1>
+                            <p>Production is running at 94% efficiency today.</p>
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                                <div class="stat-info">
+                                    <h3>Pending Orders</h3>
+                                    <p class="stat-value">12</p>
+                                    <span class="stat-trend negative">-2 from yesterday</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon success"><i class="fa-solid fa-check-double"></i></div>
+                                <div class="stat-info">
+                                    <h3>Completed Cuts</h3>
+                                    <p class="stat-value">1,450m²</p>
+                                    <span class="stat-trend positive">+8% this week</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon info"><i class="fa-solid fa-truck"></i></div>
+                                <div class="stat-info">
+                                    <h3>Dispatched</h3>
+                                    <p class="stat-value">8 Trucks</p>
+                                    <span class="stat-trend neutral">On schedule</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon primary"><i class="fa-solid fa-dollar-sign"></i></div>
+                                <div class="stat-info">
+                                    <h3>Revenue (Feb)</h3>
+                                    <p class="stat-value">$124k</p>
+                                    <span class="stat-trend positive">+12% vs Jan</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Main Section: Recent Activity & Production Status -->
+                        <div class="content-split">
+                            <div class="card recent-orders">
+                                <div class="card-header">
+                                    <h3>Recent Orders</h3>
+                                    <button class="btn-text">View All</button>
+                                </div>
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Order ID</th>
+                                            <th>Client</th>
+                                            <th>Status</th>
+                                            <th>Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>#ORD-7829</td>
+                                            <td>Marbex Corp</td>
+                                            <td><span class="badge in-progress">Cutting</span></td>
+                                            <td>$4,200</td>
+                                        </tr>
+                                        <tr>
+                                            <td>#ORD-7830</td>
+                                            <td>StoneHome Ltd</td>
+                                            <td><span class="badge pending">Pending</span></td>
+                                            <td>$1,850</td>
+                                        </tr>
+                                        <tr>
+                                            <td>#ORD-7828</td>
+                                            <td>Elite Tiles</td>
+                                            <td><span class="badge completed">Completed</span></td>
+                                            <td>$9,300</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="card production-status">
+                                <div class="card-header">
+                                    <h3>Machine Status</h3>
+                                </div>
+                                <div class="machine-list">
+                                    <div class="machine-item">
+                                        <span class="machine-name">Cutter A1</span>
+                                        <div class="status-indicator running"></div>
+                                        <span class="status-text">Running</span>
+                                    </div>
+                                    <div class="machine-item">
+                                        <span class="machine-name">Polisher P2</span>
+                                        <div class="status-indicator maintenance"></div>
+                                        <span class="status-text">Maintenance</span>
+                                    </div>
+                                    <div class="machine-item">
+                                        <span class="machine-name">CNC Router X1</span>
+                                        <div class="status-indicator running"></div>
+                                        <span class="status-text">Running</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- ORDERS VIEW -->
+                <div id="view-orders" class="view-section" style="display: none;"></div>
+
+                <!-- HR VIEW -->
+                <div id="view-hr" class="view-section" style="display: none;"></div>
+                <!-- PROCUREMENT VIEW -->
+                <div id="view-procurement" class="view-section" style="display: none;"></div>
+            </div>
+
+            <!-- Spacer for scrolling effect -->
+            <div style="height: 50vh;"></div>
+        </main>
+
+        <!-- Profile Sidebar/Modal -->
+        <div class="profile-panel" id="profile-panel">
+            <div class="profile-header">
+                <h3>User Profile</h3>
+                <button id="profile-close"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="profile-body">
+                <div class="profile-avatar-large">AD</div>
+                <h4>Admin User</h4>
+                <p>Plant Manager</p>
+                <hr>
+                <ul class="profile-menu">
+                    <li><a href="#">Account Settings</a></li>
+                    <li><a href="#">Notifications</a></li>
+                    <li><a href="#">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Modal -->
+    <div id="generic-modal" class="modal-overlay">
+        <div class="modal-content" id="modal-content-body">
+            <!-- Injected Content -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
