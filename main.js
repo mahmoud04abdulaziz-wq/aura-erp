@@ -39,6 +39,64 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- GLOBAL BUTTON WIRE-UP ---
+    const showGenericModal = (title, message) => {
+        const modal = document.getElementById('generic-modal');
+        const content = document.getElementById('modal-content-body');
+        if (modal && content) {
+            content.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                    <h2 style="margin:0;">${title}</h2>
+                    <button onclick="document.getElementById('generic-modal').classList.remove('active')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                </div>
+                <div>
+                    <p style="color:var(--text-secondary); line-height:1.6;">${message}</p>
+                </div>
+                <div style="margin-top:2rem; display:flex; justify-content:flex-end;">
+                    <button onclick="document.getElementById('generic-modal').classList.remove('active')" style="padding:0.75rem 1.5rem; background:var(--accent-primary); color:white; border:none; border-radius:8px; cursor:pointer;">Close</button>
+                </div>
+            `;
+            modal.classList.add('active');
+        }
+    };
+
+    // Header actions
+    const bellBtn = document.querySelector('.fa-bell')?.parentElement;
+    const envBtn = document.querySelector('.fa-envelope')?.parentElement;
+
+    if (bellBtn) bellBtn.addEventListener('click', () => showGenericModal('Notifications', 'You have 3 new notifications regarding recent order status changes.'));
+    if (envBtn) envBtn.addEventListener('click', () => showGenericModal('Messages', 'You have no new messages at this time.'));
+
+    // Sidebar settings and profile links
+    const settingsLink = document.querySelector('.sidebar-footer a');
+    if (settingsLink) settingsLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        showGenericModal('Settings', 'System configuration and preferences will be available in the final release.');
+    });
+
+    const profileLinks = document.querySelectorAll('.profile-menu a');
+    profileLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const text = link.textContent;
+            if (text === 'Logout') {
+                showGenericModal('Logout', 'You have been successfully logged out. (Demo)');
+            } else {
+                showGenericModal(text, `This section (${text}) is under construction.`);
+            }
+            if (profilePanel) profilePanel.classList.remove('active');
+        });
+    });
+
+    // View All Recent Orders
+    const viewAllOrdersBtn = document.querySelector('.recent-orders .btn-text');
+    if (viewAllOrdersBtn) {
+        viewAllOrdersBtn.addEventListener('click', () => {
+            const ordersNav = document.querySelector('.sidebar-nav li[data-view="orders"]');
+            if (ordersNav) ordersNav.click();
+        });
+    }
+
     // --- NAVIGATION LOGIC ---
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
@@ -68,13 +126,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => targetView.classList.add('active'), 10);
 
                 // Module Loading
-                if (viewId === 'orders') renderOrdersModule();
-                if (viewId === 'hr') renderHRModule();
-                if (viewId === 'procurement') renderProcurementModule();
+                if (viewId === 'orders') window.renderOrdersModule?.();
+                if (viewId === 'hr') window.renderHRModule?.();
+                if (viewId === 'procurement') window.renderProcurementModule?.();
+                if (viewId === 'production') window.renderProductionModule?.();
+                if (viewId === 'inventory') window.renderInventoryModule?.();
+                if (viewId === 'finance') window.renderFinanceModule?.();
             } else {
-                // If view doesn't exist (e.g. Inventory), show a placeholder or nothing
-                // For now we just stay blank or we could show an 'Under Construction' toast
+                // If view doesn't exist, show under construction
                 console.log(`View ${viewId} not implemented yet.`);
+                showGenericModal('Under Construction', `The ${titleText} module is currently under development.`);
             }
         });
     });
