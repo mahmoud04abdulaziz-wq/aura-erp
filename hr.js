@@ -205,9 +205,9 @@ window.viewLeaveTicket = function (ticketId) {
                 <h2 style="margin:0;">Workflow: ${ticket.id}</h2>
                 <button onclick="document.getElementById('generic-modal').classList.remove('active')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem; background:var(--bg-sidebar); padding:1rem; border-radius:8px;">
-                <div><small style="color:var(--text-secondary)">Requester</small><div><strong>${ticket.empName}</strong></div></div>
-                <div><small style="color:var(--text-secondary)">Reason</small><div>${ticket.reason}</div></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem; background:var(--bg-sidebar); color:white; padding:1rem; border-radius:8px;">
+                <div><small style="color:#94a3b8;">Requester</small><div><strong>${ticket.empName}</strong></div></div>
+                <div><small style="color:#94a3b8;">Reason</small><div>${ticket.reason}</div></div>
             </div>
             <div style="display:flex; justify-content:space-between; position:relative; margin-bottom: 2rem;">
                 <div style="position:absolute; top:15px; left:10%; right:10%; height:2px; background:var(--border-color); z-index:0;"></div>
@@ -220,7 +220,7 @@ window.viewLeaveTicket = function (ticketId) {
         </div>`;
 
     const modal = document.getElementById('generic-modal');
-    modal.innerHTML = `<div class="modal-content" id="modal-content-body" style="background:transparent; padding:0; box-shadow:none; max-width:800px; margin:auto;">${content}</div>`;
+    modal.innerHTML = `<div class="modal-content" id="modal-content-body" style="background:var(--bg-panel); padding:2rem; border-radius:16px; box-shadow:var(--shadow-lg); max-width:700px; margin:auto;">${content}</div>`;
     modal.classList.add('active');
 };
 
