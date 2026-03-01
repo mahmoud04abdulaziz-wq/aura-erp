@@ -74,9 +74,19 @@
                 </div>
 
                 <div class="right-section">
-                    <!-- Profile Page Access (Top Left corner as requested, but standard UX places it top right. User asked for Top Left Profile page, but 'profile page on the top left corner' might mean a link. I will put a distinct Profile Link/Icon in the header, and ensure the specific request is met or interpreted reasonably within a standard layout, perhaps adapting the 'left' requirement to the sidebar top or header left) -->
-                    <!-- Re-reading request: "profile page on the top left corner". This is non-standard. I will place a prominent Profile Widget in the Sidebar Top or Header Left. Let's put a User Profile Summary in the top-left of the Dashboard content area or the Sidebar.
-                    Actually, "top left corner" typically implies the logo area or right next to the menu button. I will put a small profile avatar next to the hamburger menu. -->
+                    <div class="role-simulator"
+                        style="margin-right: 1.5rem; display: flex; align-items: center; gap: 0.5rem; background: rgba(0,0,0,0.05); padding: 0.25rem 0.5rem; border-radius: 6px;">
+                        <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600;">Role:</span>
+                        <select id="simulate-role"
+                            style="font-size: 0.8rem; padding: 0.25rem; border: 1px solid var(--border-color); border-radius: 4px; background: white; color: var(--text-primary); cursor: pointer;"
+                            onchange="if(window.handleRoleChange) window.handleRoleChange(this.value)">
+                            <option value="Admin">Admin</option>
+                            <option value="Production Supervisor">Supervisor</option>
+                            <option value="Project Manager">PM</option>
+                            <option value="HR Manager">HR Manager</option>
+                            <option value="Employee">Employee</option>
+                        </select>
+                    </div>
 
                     <div class="user-profile-widget" onclick="toggleProfile()">
                         <div class="avatar">AD</div>
