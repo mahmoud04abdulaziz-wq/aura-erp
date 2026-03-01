@@ -127,11 +127,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Module Loading
                 if (viewId === 'orders') window.renderOrdersModule?.();
+                if (viewId === 'kanban') window.renderKanbanModule?.();
                 if (viewId === 'hr') window.renderHRModule?.();
                 if (viewId === 'procurement') window.renderProcurementModule?.();
                 if (viewId === 'production') window.renderProductionModule?.();
                 if (viewId === 'inventory') window.renderInventoryModule?.();
-                if (viewId === 'finance') window.renderFinanceModule?.();
+                if (viewId === 'accounting') window.renderAccountingModule?.();
+                if (viewId === 'invoices') window.renderInvoicesModule?.();
+                if (viewId === 'analytics') window.renderAnalyticsModule?.();
+                if (viewId === 'reports') window.renderReportsModule?.();
             } else {
                 // If view doesn't exist, show under construction
                 console.log(`View ${viewId} not implemented yet.`);

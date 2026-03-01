@@ -1,4 +1,4 @@
-// --- FINANCE MODULE ---
+// --- ACCOUNTING MODULE ---
 
 const recentTransactions = [
     { id: 'TRX-1092', date: 'Feb 16, 2026', description: 'Client Payment - Elite Tiles', type: 'Income', amount: '+$9,300.00' },
@@ -8,8 +8,8 @@ const recentTransactions = [
     { id: 'TRX-1088', date: 'Feb 08, 2026', description: 'Payroll - Feb 1st Week', type: 'Expense', amount: '-$12,500.00' }
 ];
 
-window.renderFinanceModule = function () {
-    const container = document.getElementById('view-finance');
+window.renderAccountingModule = function () {
+    const container = document.getElementById('view-accounting');
 
     if (!container.dataset.shellBuilt) {
         container.innerHTML = `
