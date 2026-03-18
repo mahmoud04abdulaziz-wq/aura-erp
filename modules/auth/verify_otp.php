@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
     <style>
         .login-page {
-            min-height: 100vh;
+            width: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -259,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body>
-    <div class="app-container">
+    <div class="app-container" style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
         <div class="bg-animation">
             <div class="shape shape-1"></div>
             <div class="shape shape-2"></div>
