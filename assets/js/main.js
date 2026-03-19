@@ -35,15 +35,65 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Close profile if clicking outside
+    // Close profile or modals if clicking outside
     document.addEventListener('click', (e) => {
+        // Profile Panel
         if (profilePanel &&
             !profilePanel.contains(e.target) &&
             !e.target.closest('.user-profile-widget') &&
             profilePanel.classList.contains('active')) {
             profilePanel.classList.remove('active');
         }
+
+        // Generic Modals (Clicking the blurry background overlay)
+        if (e.target && e.target.id === 'generic-modal') {
+            e.target.classList.remove('active');
+        }
     });
+
+    // --- CUSTOM UI COMPONENTS ---
+    window.initCustomSelects = (container = document) => {
+        const wrappers = container.querySelectorAll('.custom-select-wrapper');
+        
+        wrappers.forEach(wrapper => {
+            const select = wrapper.querySelector('.custom-select');
+            const options = wrapper.querySelectorAll('.custom-option');
+            const hiddenInput = wrapper.querySelector('input[type="hidden"]');
+            const textSpan = wrapper.querySelector('.selected-text');
+            
+            if(wrapper.dataset.initialized) return;
+            wrapper.dataset.initialized = 'true';
+            
+            select.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const wasOpen = wrapper.classList.contains('open');
+                document.querySelectorAll('.custom-select-wrapper.open').forEach(w => w.classList.remove('open'));
+                if (!wasOpen) wrapper.classList.add('open');
+            });
+            
+            options.forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (opt.dataset.value === "") return;
+                    
+                    hiddenInput.value = opt.dataset.value;
+                    textSpan.textContent = opt.textContent;
+                    textSpan.style.opacity = '1';
+                    
+                    options.forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    wrapper.classList.remove('open');
+                });
+            });
+        });
+        
+        if(!window._customSelectDocClickInit) {
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.custom-select-wrapper.open').forEach(w => w.classList.remove('open'));
+            });
+            window._customSelectDocClickInit = true;
+        }
+    };
 
     // --- GENERIC MODAL ---
     window.showGenericModal = (title, message) => {
