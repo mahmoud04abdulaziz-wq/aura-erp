@@ -4,52 +4,58 @@
  * Displays operational overview with live stats from the database.
  */
 
-try {
-    // Pending sales orders
-    $pendingOrders = $pdo->query("SELECT COUNT(*) FROM sales_orders WHERE order_status = 'Pending'")->fetchColumn();
+    // Default values
+    $pendingOrders = 0;
+    $activeProduction = 0;
+    $lowStockItems = [];
+    $finishedGoodsCount = 0;
+    $recentLogs = [];
+    $recentOrders = [];
 
-    // Active production orders
-    $activeProduction = $pdo->query("SELECT COUNT(*) FROM production_orders WHERE status IN ('Planned','Mixing','Curing')")->fetchColumn();
+    try {
+        $pendingOrders = $pdo->query("SELECT COUNT(*) FROM sales_orders WHERE order_status = 'Pending'")->fetchColumn();
+    } catch (Exception $e) { error_log("Dashboard pendingOrders error: " . $e->getMessage()); }
 
-    // Low stock items
-    $lowStockSql = "SELECT im.item_name, im.min_stock_level, im.base_uom,
-                           COALESCE(SUM(il.quantity_change), 0) as current_stock
-                    FROM item_master im
-                    LEFT JOIN inventory_ledger il ON im.item_id = il.item_id
-                    GROUP BY im.item_id
-                    HAVING current_stock < im.min_stock_level
-                    ORDER BY (current_stock / im.min_stock_level) ASC
-                    LIMIT 5";
-    $lowStockItems = $pdo->query($lowStockSql)->fetchAll();
+    try {
+        $activeProduction = $pdo->query("SELECT COUNT(*) FROM production_orders WHERE status IN ('Planned','Mixing','Curing')")->fetchColumn();
+    } catch (Exception $e) { error_log("Dashboard activeProduction error: " . $e->getMessage()); }
 
-    // Total finished goods
-    $finishedGoodsCount = $pdo->query("SELECT COALESCE(SUM(quantity_in_stock), 0) FROM inventory_finished_goods")->fetchColumn();
+    try {
+        $lowStockSql = "SELECT im.item_name, im.min_stock_level, im.base_uom,
+                               COALESCE(SUM(il.quantity_change), 0) as current_stock
+                        FROM item_master im
+                        LEFT JOIN inventory_ledger il ON im.item_id = il.item_id
+                        GROUP BY im.item_id
+                        HAVING current_stock < im.min_stock_level
+                        ORDER BY (current_stock / im.min_stock_level) ASC
+                        LIMIT 5";
+        $lowStockItems = $pdo->query($lowStockSql)->fetchAll();
+    } catch (Exception $e) { error_log("Dashboard lowStockItems error: " . $e->getMessage()); }
 
-    // Recent system activity
-    $recentLogs = $pdo->query(
-        "SELECT sl.action_type, sl.description, sl.status, sl.timestamp,
-                CONCAT(e.first_name, ' ', e.last_name) as user_name
-         FROM system_logs sl
-         JOIN users u ON sl.user_id = u.user_id
-         JOIN employees e ON u.employee_id = e.employee_id
-         ORDER BY sl.timestamp DESC
-         LIMIT 5"
-    )->fetchAll();
+    try {
+        $finishedGoodsCount = $pdo->query("SELECT COALESCE(SUM(quantity_in_stock), 0) FROM inventory_finished_goods")->fetchColumn();
+    } catch (Exception $e) { error_log("Dashboard finishedGoodsCount error: " . $e->getMessage()); }
 
-    // Recent sales orders
-    $recentOrders = $pdo->query(
-        "SELECT so.so_id, c.company_name, so.order_status, so.total_price
-         FROM sales_orders so
-         JOIN customers c ON so.customer_id = c.customer_id
-         ORDER BY so.order_date DESC
-         LIMIT 5"
-    )->fetchAll();
+    try {
+        $recentLogs = $pdo->query(
+            "SELECT sl.action_type, sl.description, sl.status, sl.timestamp,
+                    u.username as user_name
+             FROM system_logs sl
+             JOIN users u ON sl.user_id = u.user_id
+             ORDER BY sl.timestamp DESC
+             LIMIT 5"
+        )->fetchAll();
+    } catch (Exception $e) { error_log("Dashboard recentLogs error: " . $e->getMessage()); }
 
-} catch (Exception $e) {
-    error_log("Dashboard query error: " . $e->getMessage());
-    $pendingOrders = $activeProduction = $finishedGoodsCount = 0;
-    $lowStockItems = $recentLogs = $recentOrders = [];
-}
+    try {
+        $recentOrders = $pdo->query(
+            "SELECT so.so_id, c.company_name, so.order_status, so.total_price
+             FROM sales_orders so
+             JOIN customers c ON so.customer_id = c.customer_id
+             ORDER BY so.order_date DESC
+             LIMIT 5"
+        )->fetchAll();
+    } catch (Exception $e) { error_log("Dashboard recentOrders error: " . $e->getMessage()); }
 ?>
 
 <div class="view-section active" style="display:block;">
