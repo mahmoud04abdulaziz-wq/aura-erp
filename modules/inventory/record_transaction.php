@@ -38,13 +38,24 @@ try {
         VALUES (?, ?, ?, ?, 'Manual Log', ?, NOW())
     ");
     
-    $stmt->execute([
-        $item_id,
-        $warehouse_id,
-        $transaction_type,
-        $quantity_change,
-        $recorded_by
-    ]);
+    $stmt->execute([ $item_id, $warehouse_id, $transaction_type, $quantity_change, $recorded_by ]);
+
+    // Post-Transaction: Check for Low Stock condition
+    $stockCheck = $pdo->prepare("
+        SELECT im.item_name, im.min_stock_level, 
+               COALESCE(SUM(il.quantity_change), 0) as current_stock
+        FROM item_master im
+        LEFT JOIN inventory_ledger il ON im.item_id = il.item_id
+        WHERE im.item_id = ?
+        GROUP BY im.item_id
+    ");
+    $stockCheck->execute([$item_id]);
+    $res = $stockCheck->fetch();
+    
+    if ($res && $res['current_stock'] <= $res['min_stock_level']) {
+        require_once __DIR__ . '/../../includes/notifications.php';
+        addNotification($pdo, "Low Stock Alert", "{$res['item_name']} is now at {$res['current_stock']}. Minimum required: {$res['min_stock_level']}.", 'inventory');
+    }
 
     echo json_encode(['success' => true]);
     

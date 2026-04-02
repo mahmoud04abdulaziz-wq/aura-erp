@@ -60,6 +60,11 @@ try {
     $logStmt = $pdo->prepare("INSERT INTO system_logs (user_id, action_type, description, status) VALUES (?, 'RECORD_TRANSACTION', ?, 'Success')");
     $logStmt->execute([$user_id, "Recorded $transaction_type of $$amount in category '$category' (ID: $txn_id)"]);
 
+    // Push to Live Notification Feed
+    require_once __DIR__ . '/../../includes/notifications.php';
+    $message = "{$transaction_type} of \${$amount} recorded for: {$category}";
+    addNotification($pdo, "Financial Activity", $message, 'finance');
+
     echo json_encode(['success' => true, 'message' => "Transaction $txn_id recorded.", 'transaction_id' => $txn_id]);
 } catch (Exception $e) {
     error_log("Record transaction error: " . $e->getMessage());

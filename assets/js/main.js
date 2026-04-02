@@ -49,7 +49,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target && e.target.id === 'generic-modal') {
             e.target.classList.remove('active');
         }
+
+        // Notification Dropdown (Close if clicking outside)
+        const notifDropdown = document.getElementById('notification-dropdown');
+        if (notifDropdown && 
+            !notifDropdown.contains(e.target) && 
+            !e.target.closest('.notification-wrapper') &&
+            notifDropdown.classList.contains('active')) {
+            notifDropdown.classList.remove('active');
+        }
     });
+
+    // --- NOTIFICATION TOGGLE ---
+    window.toggleNotifications = (e) => {
+        if (e) e.stopPropagation();
+        const dropdown = document.getElementById('notification-dropdown');
+        if (dropdown) dropdown.classList.toggle('active');
+        
+        // Close profile panel if open
+        const profilePanel = document.getElementById('profile-panel');
+        if (profilePanel) profilePanel.classList.remove('active');
+    };
 
     // --- CUSTOM UI COMPONENTS ---
     window.initCustomSelects = (container = document) => {
@@ -117,10 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- HEADER ACTIONS ---
-    const bellBtn = document.querySelector('.fa-bell')?.parentElement;
     const envBtn = document.querySelector('.fa-envelope')?.parentElement;
 
-    if (bellBtn) bellBtn.addEventListener('click', () => showGenericModal('Notifications', 'You have no new notifications.'));
     if (envBtn) envBtn.addEventListener('click', () => showGenericModal('Messages', 'You have no new messages.'));
 
     // --- SCROLL ANIMATION ---
@@ -135,4 +153,49 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- ADMIN OVERHAUL ---
+    window.switchTab = (tabId) => {
+        // Toggle tab links
+        document.querySelectorAll('.tab-link').forEach(link => {
+            const isActive = link.getAttribute('onclick')?.includes(tabId);
+            link.classList.toggle('active', isActive);
+        });
+        // Toggle tab content
+        document.querySelectorAll('.admin-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.id === tabId);
+        });
+    };
+
+    window.savePermissions = async (event) => {
+        if (event) event.preventDefault();
+        const form = document.getElementById('permissions-form');
+        if (!form) return;
+
+        const btn = document.querySelector('button[onclick^="savePermissions"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        btn.disabled = true;
+
+        try {
+            const formData = new FormData(form);
+            const res = await fetch('modules/admin/update_permissions.php', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                alert('Permissions updated successfully!');
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Network error while saving permissions.');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    };
 });

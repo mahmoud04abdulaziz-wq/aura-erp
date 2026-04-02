@@ -29,6 +29,10 @@ try {
     $handled_by = $_SESSION['user_id'] ?? 1;
     $logStmt = $pdo->prepare("INSERT INTO system_logs (user_id, action_type, description, status) VALUES (?, 'UPDATE_ORDER_STATUS', ?, 'Success')");
     $logStmt->execute([$handled_by, "Updated order $so_id status to $status"]);
+
+    // Push to Live Notification Feed
+    require_once __DIR__ . '/../../includes/notifications.php';
+    addNotification($pdo, "Order Status Updated", "Order #{$so_id} is now: {$status}", 'finance');
     
     echo json_encode(['success' => true, 'message' => 'Status updated successfully.']);
 } catch (Exception $e) {

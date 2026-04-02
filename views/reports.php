@@ -16,24 +16,28 @@ try {
 
 $reportCards = [
     [
+        'id' => 'sales',
         'icon' => 'fa-solid fa-file-invoice-dollar',
         'color' => 'var(--accent-primary)',
         'title' => 'Monthly Sales Summary',
         'desc' => "Breakdown of revenue by client and product. ($salesCount orders recorded)",
     ],
     [
+        'id' => 'production',
         'icon' => 'fa-solid fa-shapes',
         'color' => 'var(--success)',
         'title' => 'Production Efficiency',
         'desc' => "Machine usage, downtime, and output volume. ($productionCount batches tracked)",
     ],
     [
+        'id' => 'inventory',
         'icon' => 'fa-solid fa-warehouse',
         'color' => 'var(--warning)',
         'title' => 'Inventory Valuation',
         'desc' => "Current stock levels and estimated ledger value. ($itemCount items in master)",
     ],
     [
+        'id' => 'employees',
         'icon' => 'fa-solid fa-users',
         'color' => 'var(--text-primary)',
         'title' => 'Employee Payroll',
@@ -66,9 +70,9 @@ $reportCards = [
                     </div>
                 </div>
                 <div style="display:flex; gap:0.5rem; margin-top:auto;">
-                    <button
+                    <button onclick="window.location.href='<?= BASE_URL ?>/modules/reports/export.php?type=<?= $report['id'] ?>&format=pdf'"
                         style="flex:1; padding:0.5rem; background:var(--accent-primary); color:white; border:none; border-radius:4px; cursor:pointer;">PDF</button>
-                    <button
+                    <button onclick="window.location.href='<?= BASE_URL ?>/modules/reports/export.php?type=<?= $report['id'] ?>&format=csv'"
                         style="flex:1; padding:0.5rem; background:var(--bg-body); color:var(--text-primary); border:1px solid var(--border-color); border-radius:4px; cursor:pointer;">CSV</button>
                 </div>
             </div>

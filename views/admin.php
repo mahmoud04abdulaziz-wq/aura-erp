@@ -5,12 +5,11 @@
  */
 
 try {
-    // Employees WITHOUT accounts (pending provisioning)
+    // --- SECTION 1: User Accounts (Existing) ---
+    // (Previous queries remain the same)
     $pendingAccounts = $pdo->query("
         SELECT e.employee_id, e.first_name, e.last_name, e.email, e.hire_date,
-               e.verification_status, e.department_id,
-               d.department_name,
-               r.role_name, e.role_id
+               e.verification_status, e.department_id, d.department_name, r.role_name, e.role_id
         FROM employees e
         JOIN departments d ON e.department_id = d.department_id
         LEFT JOIN roles r ON e.role_id = r.role_id
@@ -19,12 +18,9 @@ try {
         ORDER BY e.hire_date DESC
     ")->fetchAll(PDO::FETCH_ASSOC);
 
-    // Employees WITH accounts (active accounts)
     $activeAccounts = $pdo->query("
-        SELECT e.employee_id, e.first_name, e.last_name, e.email,
-               d.department_name,
-               r.role_name,
-               u.user_id, u.account_status, u.mfa_enabled
+        SELECT e.employee_id, e.first_name, e.last_name, e.email, d.department_name,
+               r.role_name, u.user_id, u.account_status, u.mfa_enabled
         FROM users u
         JOIN employees e ON u.employee_id = e.employee_id
         JOIN departments d ON e.department_id = d.department_id
@@ -32,210 +28,234 @@ try {
         ORDER BY e.first_name, e.last_name
     ")->fetchAll(PDO::FETCH_ASSOC);
 
+    // --- SECTION 2: Role Permissions (New) ---
+    $roles = $pdo->query("SELECT role_id, role_name FROM roles ORDER BY role_id")->fetchAll(PDO::FETCH_ASSOC);
+    $allPermissions = $pdo->query("SELECT permission_id, module_access, description FROM permissions ORDER BY module_access")->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Fetch existing mappings into an associative array for quick lookup: $mappings[role_id][perm_id] = true
+    $rawMappings = $pdo->query("SELECT role_id, permission_id FROM role_permissions")->fetchAll(PDO::FETCH_ASSOC);
+    $mappings = [];
+    foreach ($rawMappings as $m) {
+        $mappings[$m['role_id']][$m['permission_id']] = true;
+    }
+
+    // --- SECTION 3: System Audit Logs (New) ---
+    $auditLogs = $pdo->query("
+        SELECT l.*, e.first_name, e.last_name, r.role_name
+        FROM system_logs l
+        JOIN users u ON l.user_id = u.user_id
+        JOIN employees e ON u.employee_id = e.employee_id
+        JOIN roles r ON u.role_id = r.role_id
+        ORDER BY l.timestamp DESC
+        LIMIT 100
+    ")->fetchAll(PDO::FETCH_ASSOC);
+
     // Stats
     $totalAccounts = count($activeAccounts);
     $pendingCount = count($pendingAccounts);
     $activeCount = count(array_filter($activeAccounts, fn($a) => $a['account_status'] === 'Active'));
     $suspendedCount = count(array_filter($activeAccounts, fn($a) => $a['account_status'] === 'Suspended'));
+
 } catch (Exception $e) {
     error_log("Admin view error: " . $e->getMessage());
-    $pendingAccounts = $activeAccounts = [];
+    $pendingAccounts = $activeAccounts = $roles = $allPermissions = $auditLogs = [];
     $totalAccounts = $pendingCount = $activeCount = $suspendedCount = 0;
 }
 ?>
 
-<!-- Stats -->
-<div class="stats-grid" style="margin-bottom: 1.5rem;">
-    <div class="stat-card">
-        <div class="stat-icon primary"><i class="fa-solid fa-users-gear"></i></div>
-        <div class="stat-info">
-            <h3>Total Accounts</h3>
-            <p class="stat-value" style="font-size:1.5rem;"><?= $totalAccounts ?></p>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon warning"><i class="fa-solid fa-user-clock"></i></div>
-        <div class="stat-info">
-            <h3>Pending Provisioning</h3>
-            <p class="stat-value" style="font-size:1.5rem;"><?= $pendingCount ?></p>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon success"><i class="fa-solid fa-user-check"></i></div>
-        <div class="stat-info">
-            <h3>Active Accounts</h3>
-            <p class="stat-value" style="font-size:1.5rem;"><?= $activeCount ?></p>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background:rgba(239,68,68,0.1); color:#ef4444;"><i class="fa-solid fa-user-slash"></i></div>
-        <div class="stat-info">
-            <h3>Suspended</h3>
-            <p class="stat-value" style="font-size:1.5rem;"><?= $suspendedCount ?></p>
-        </div>
-    </div>
+<!-- Admin Tab Navigation -->
+<div class="admin-tabs-nav">
+    <div class="tab-link active" onclick="switchTab('tab-accounts')"><i class="fa-solid fa-users-gear"></i> User Accounts</div>
+    <div class="tab-link" onclick="switchTab('tab-permissions')"><i class="fa-solid fa-shield-keyhole"></i> Role Permissions</div>
+    <div class="tab-link" onclick="switchTab('tab-logs')"><i class="fa-solid fa-list-ul"></i> System Audit Log</div>
 </div>
 
-<!-- Pending Provisioning -->
-<div class="card" style="margin-bottom: 1.5rem;">
-    <div class="card-header">
-        <h3><i class="fa-solid fa-user-plus" style="color:var(--accent-primary); margin-right:0.5rem;"></i>Pending Account Provisioning</h3>
-        <span class="badge pending" style="font-size:0.85rem;"><?= $pendingCount ?> waiting</span>
+<!-- Tab 1: User Accounts -->
+<div id="tab-accounts" class="admin-tab active">
+    <!-- Existing Layout -->
+    <div class="stats-grid" style="margin-bottom: 1.5rem;">
+        <!-- ... Stats Content ... -->
+        <div class="stat-card">
+            <div class="stat-icon primary"><i class="fa-solid fa-users-gear"></i></div>
+            <div class="stat-info">
+                <h3>Total Accounts</h3>
+                <p class="stat-value" style="font-size:1.5rem;"><?= $totalAccounts ?></p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon warning"><i class="fa-solid fa-user-clock"></i></div>
+            <div class="stat-info">
+                <h3>Pending Provisioning</h3>
+                <p class="stat-value" style="font-size:1.5rem;"><?= $pendingCount ?></p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon success"><i class="fa-solid fa-user-check"></i></div>
+            <div class="stat-info">
+                <h3>Active Accounts</h3>
+                <p class="stat-value" style="font-size:1.5rem;"><?= $activeCount ?></p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(239,68,68,0.1); color:#ef4444;"><i class="fa-solid fa-user-slash"></i></div>
+            <div class="stat-info">
+                <h3>Suspended</h3>
+                <p class="stat-value" style="font-size:1.5rem;"><?= $suspendedCount ?></p>
+            </div>
+        </div>
     </div>
 
-    <?php if ($pendingCount > 0): ?>
-    <p style="padding:0 1rem; color:var(--text-secondary); font-size:0.85rem; margin-bottom:0.5rem;">
-        These employees have been registered by HR but do not have a system login yet. Click <strong>"Create Account"</strong> to provision their access.
-    </p>
-    <?php endif; ?>
-
-    <div style="overflow-x:auto;">
-        <table class="data-table" id="pending-table">
-            <thead>
-                <tr>
-                    <th>Employee</th>
-                    <th>Email</th>
-                    <th>Department</th>
-                    <th>Role</th>
-                    <th>Hire Date</th>
-                    <th>HR Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($pendingAccounts)): ?>
-                    <tr><td colspan="7" style="text-align:center; padding:3rem; color:var(--text-secondary);">
-                        <i class="fa-solid fa-circle-check" style="font-size:2rem; color:#10b981; display:block; margin-bottom:0.75rem;"></i>
-                        All employees have been provisioned
-                    </td></tr>
-                <?php else: ?>
-                    <?php foreach ($pendingAccounts as $emp): ?>
-                        <?php
-                        $fullName = $emp['first_name'] . ' ' . $emp['last_name'];
-                        $statusBadge = match ($emp['verification_status']) { 'Approved' => 'completed', 'Rejected' => 'orange', default => 'pending' };
-                        $hasRole = !empty($emp['role_id']);
-                        ?>
-                        <tr>
-                            <td>
-                                <span style="font-weight:600;"><?= htmlspecialchars($fullName) ?></span><br>
-                                <small style="font-family:monospace; color:var(--text-secondary);">EMP-<?= $emp['employee_id'] ?></small>
-                            </td>
-                            <td><?= htmlspecialchars($emp['email']) ?></td>
-                            <td><?= htmlspecialchars($emp['department_name']) ?></td>
-                            <td>
-                                <?php if ($hasRole): ?>
-                                    <span class="badge in-progress"><?= htmlspecialchars($emp['role_name']) ?></span>
-                                <?php else: ?>
-                                    <span class="badge pending" style="opacity:0.6;">Not Assigned</span>
-                                <?php endif; ?>
-                            </td>
-                            <td><?= $emp['hire_date'] ? date('M d, Y', strtotime($emp['hire_date'])) : '—' ?></td>
-                            <td><span class="badge <?= $statusBadge ?>"><?= htmlspecialchars($emp['verification_status']) ?></span></td>
-                            <td>
-                                <?php if ($hasRole): ?>
-                                    <button class="icon-btn" onclick="provisionAccount(<?= $emp['employee_id'] ?>, '<?= addslashes($fullName) ?>', '<?= addslashes($emp['role_name']) ?>')"
-                                        style="width:auto; padding:0.4rem 0.9rem; font-size:0.8rem; color:#10b981; border-color:#10b981; gap:0.4rem;">
-                                        <i class="fa-solid fa-user-plus"></i> Create Account
-                                    </button>
-                                <?php else: ?>
-                                    <span style="font-size:0.8rem; color:var(--text-secondary);" title="HR must assign a role first">
-                                        <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> No role
-                                    </span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
+    <!-- Pending Provisioning Table -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+            <h3><i class="fa-solid fa-user-plus" style="color:var(--accent-primary); margin-right:0.5rem;"></i>Pending Account Provisioning</h3>
+            <span class="badge pending" style="font-size:0.85rem;"><?= $pendingCount ?> waiting</span>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="data-table">
+                <thead><tr><th>Employee</th><th>Email</th><th>Department</th><th>Role</th><th>Action</th></tr></thead>
+                <tbody>
+                    <?php if (empty($pendingAccounts)): ?>
+                        <tr><td colspan="5" style="text-align:center; padding:2rem; color:var(--text-secondary);">No pending accounts.</td></tr>
+                    <?php else: ?>
+                        <?php foreach ($pendingAccounts as $emp): ?>
+                            <tr>
+                                <td><b><?= htmlspecialchars($emp['first_name'] . ' ' . $emp['last_name']) ?></b></td>
+                                <td><?= htmlspecialchars($emp['email']) ?></td>
+                                <td><?= htmlspecialchars($emp['department_name']) ?></td>
+                                <td><span class="badge in-progress"><?= htmlspecialchars($emp['role_name'] ?? 'Unassigned') ?></span></td>
+                                <td>
+                                    <?php if ($emp['role_id']): ?>
+                                        <button class="icon-btn" onclick="provisionAccount(<?= $emp['employee_id'] ?>, '<?= addslashes($emp['first_name'].' '.$emp['last_name']) ?>', '<?= addslashes($emp['role_name']) ?>')" style="width:auto; padding:0.4rem 0.8rem; font-size:0.8rem; color:var(--success); border-color:var(--success);">Create Account</button>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
 
-<!-- Active Accounts -->
-<div class="card">
-    <div class="card-header" style="flex-direction:column; align-items:flex-start; gap:1rem;">
-        <div style="width:100%; display:flex; justify-content:space-between; align-items:center;">
+    <!-- Active Accounts Table -->
+    <div class="card">
+        <div class="card-header">
             <h3><i class="fa-solid fa-shield-halved" style="color:var(--accent-primary); margin-right:0.5rem;"></i>Active System Accounts</h3>
         </div>
-        <div style="display:flex; gap:0.75rem; flex-wrap:wrap; width:100%;">
-            <input type="text" id="acct-search" placeholder="Search accounts..." style="flex:1; min-width:200px; padding:0.5rem 1rem; border:1px solid var(--border-color); border-radius:8px; font-size:0.9rem;" oninput="filterAccountTable()">
-            <select id="acct-status-filter" onchange="filterAccountTable()" style="padding:0.5rem 1rem; border:1px solid var(--border-color); border-radius:8px; font-size:0.9rem;">
-                <option value="All">All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="Suspended">Suspended</option>
-            </select>
-        </div>
-    </div>
-
-    <div style="overflow-x:auto;">
-        <table class="data-table" id="accounts-table">
-            <thead>
-                <tr>
-                    <th>User ID</th>
-                    <th>Employee</th>
-                    <th>Email</th>
-                    <th>Department</th>
-                    <th>Role</th>
-                    <th>MFA</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($activeAccounts)): ?>
-                    <tr><td colspan="8" style="text-align:center; padding:3rem;">No accounts found</td></tr>
-                <?php else: ?>
+        <div style="overflow-x:auto;">
+            <table class="data-table">
+                <thead><tr><th>User ID</th><th>Employee</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
                     <?php foreach ($activeAccounts as $acct): ?>
-                        <?php
-                        $fullName = $acct['first_name'] . ' ' . $acct['last_name'];
-                        $isActive = $acct['account_status'] === 'Active';
-                        $statusBadge = $isActive ? 'completed' : 'orange';
-                        $isSelf = ($acct['user_id'] == ($_SESSION['user_id'] ?? 0));
-                        ?>
-                        <tr data-name="<?= strtolower(htmlspecialchars($fullName)) ?>" data-status="<?= $acct['account_status'] ?>">
-                            <td><span style="font-family:monospace;">USR-<?= $acct['user_id'] ?></span></td>
-                            <td>
-                                <span style="font-weight:600;"><?= htmlspecialchars($fullName) ?></span>
-                                <?php if ($isSelf): ?>
-                                    <span class="badge in-progress" style="font-size:0.7rem; margin-left:0.4rem;">You</span>
-                                <?php endif; ?>
-                                <br><small style="font-family:monospace; color:var(--text-secondary);">EMP-<?= $acct['employee_id'] ?></small>
-                            </td>
+                        <tr>
+                            <td>USR-<?= $acct['user_id'] ?></td>
+                            <td><?= htmlspecialchars($acct['first_name'] . ' ' . $acct['last_name']) ?></td>
                             <td><?= htmlspecialchars($acct['email']) ?></td>
-                            <td><?= htmlspecialchars($acct['department_name']) ?></td>
-                            <td><span class="badge in-progress"><?= htmlspecialchars($acct['role_name'] ?? '—') ?></span></td>
+                            <td><span class="badge in-progress"><?= htmlspecialchars($acct['role_name']) ?></span></td>
+                            <td><span class="badge <?= $acct['account_status'] === 'Active' ? 'completed' : 'orange' ?>"><?= $acct['account_status'] ?></span></td>
                             <td>
-                                <?php if ($acct['mfa_enabled']): ?>
-                                    <i class="fa-solid fa-shield-check" style="color:#10b981;" title="MFA Enabled"></i>
-                                <?php else: ?>
-                                    <i class="fa-solid fa-shield" style="color:var(--text-secondary); opacity:0.4;" title="MFA Disabled"></i>
-                                <?php endif; ?>
-                            </td>
-                            <td><span class="badge <?= $statusBadge ?>"><?= $acct['account_status'] ?></span></td>
-                            <td>
-                                <div class="action-menu-container">
-                                    <button class="action-btn" onclick="this.nextElementSibling.classList.toggle('active')"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-                                    <div class="dropdown-menu">
-                                        <?php if ($isActive): ?>
-                                            <button class="dropdown-item" onclick="resetAccountPassword('<?= $acct['employee_id'] ?>')" <?= $isSelf ? 'disabled style="opacity:0.4;"' : '' ?>>
-                                                <i class="fa-solid fa-key" style="color:var(--text-secondary);"></i> Reset Password
-                                            </button>
-                                            <button class="dropdown-item delete" onclick="toggleAccountStatus(<?= $acct['user_id'] ?>, 'suspend', '<?= addslashes($fullName) ?>')" <?= $isSelf ? 'disabled style="opacity:0.4;"' : '' ?>>
-                                                <i class="fa-solid fa-user-slash"></i> Suspend
-                                            </button>
-                                        <?php else: ?>
-                                            <button class="dropdown-item" onclick="toggleAccountStatus(<?= $acct['user_id'] ?>, 'activate', '<?= addslashes($fullName) ?>')">
-                                                <i class="fa-solid fa-user-check" style="color:#10b981;"></i> Reactivate
-                                            </button>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
+                                <button class="action-btn" onclick="toggleAccountStatus(<?= $acct['user_id'] ?>, '<?= $acct['account_status'] === 'Active' ? 'suspend' : 'activate' ?>', '<?= addslashes($acct['first_name']) ?>')">
+                                    <i class="fa-solid <?= $acct['account_status'] === 'Active' ? 'fa-user-slash' : 'fa-user-check' ?>"></i>
+                                </button>
                             </td>
                         </tr>
                     <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Tab 2: Role Permissions Matrix -->
+<div id="tab-permissions" class="admin-tab">
+    <div class="card">
+        <div class="card-header" style="flex-direction:row; justify-content:space-between;">
+            <div>
+                <h3><i class="fa-solid fa-matrix" style="color:var(--accent-primary); margin-right:0.5rem;"></i>Global Permissions Matrix</h3>
+                <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">Define which roles can access specific system modules.</p>
+            </div>
+            <button onclick="savePermissions(event)" class="icon-btn" style="width:auto; padding:0.6rem 1.2rem; background:var(--accent-primary); color:white; border:none;">
+                <i class="fa-solid fa-floppy-disk"></i> Save Permissions
+            </button>
+        </div>
+
+        <form id="permissions-form">
+            <?php foreach ($roles as $role): ?>
+                <input type="hidden" name="role_ids[]" value="<?= $role['role_id'] ?>">
+            <?php endforeach; ?>
+            <div style="overflow-x:auto;">
+                <table class="matrix-table">
+                    <thead>
+                        <tr>
+                            <th class="matrix-module-name">Module / Feature</th>
+                            <?php foreach ($roles as $role): ?>
+                                <th><?= htmlspecialchars($role['role_name']) ?></th>
+                            <?php endforeach; ?>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($allPermissions as $perm): ?>
+                            <tr>
+                                <td class="matrix-module-name">
+                                    <div style="text-transform:capitalize;"><?= str_replace('_', ' ', $perm['module_access']) ?></div>
+                                    <div style="font-weight:400; font-size:0.75rem; color:var(--text-secondary);"><?= htmlspecialchars($perm['description'] ?? 'No description') ?></div>
+                                </td>
+                                <?php foreach ($roles as $role): ?>
+                                    <td>
+                                        <label class="perm-toggle">
+                                            <input type="checkbox" name="perms[<?= $role['role_id'] ?>][]" value="<?= $perm['permission_id'] ?>" 
+                                                <?= isset($mappings[$role['role_id']][$perm['permission_id']]) ? 'checked' : '' ?>>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </td>
+                                <?php endforeach; ?>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tab 3: System Audit Log -->
+<div id="tab-logs" class="admin-tab">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fa-solid fa-clock-rotate-left" style="color:var(--accent-primary); margin-right:0.5rem;"></i>System Audit Logs</h3>
+            <p style="font-size:0.85rem; color:var(--text-secondary);">Last 100 security and data events.</p>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($auditLogs)): ?>
+                        <tr><td colspan="5" style="text-align:center; padding:2rem;">No logs found.</td></tr>
+                    <?php else: ?>
+                        <?php foreach ($auditLogs as $log): ?>
+                            <tr>
+                                <td style="font-size:0.85rem; color:var(--text-secondary);"><?= date('M d, H:i:s', strtotime($log['timestamp'])) ?></td>
+                                <td>
+                                    <div style="font-weight:600; font-size:0.9rem;"><?= htmlspecialchars($log['first_name'] . ' ' . $log['last_name']) ?></div>
+                                    <div style="font-size:0.75rem; color:var(--text-secondary);"><?= htmlspecialchars($log['role_name']) ?></div>
+                                </td>
+                                <td><span style="font-family:monospace; font-weight:600;"><?= htmlspecialchars($log['action_type']) ?></span></td>
+                                <td style="font-size:0.85rem; max-width:300px;"><?= htmlspecialchars($log['description']) ?></td>
+                                <td><span class="log-status <?= $log['status'] ?>"><?= $log['status'] ?></span></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

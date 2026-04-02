@@ -1032,3 +1032,254 @@ ul {
 .custom-select-trigger i { transition: transform 0.2s; color: var(--text-secondary); }
 .custom-select-wrapper.open .custom-select-trigger i { transform: rotate(180deg); }
 
+/* --- NOTIFICATION SYSTEM --- */
+.notification-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background-color: var(--danger);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.notification-dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    width: 320px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-color);
+    z-index: 1000;
+    display: none;
+    transform-origin: top right;
+    animation: slideDown 0.2s ease-out;
+}
+
+.notification-dropdown.active {
+    display: block;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.notif-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notif-header h4 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.notif-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notif-item {
+    padding: 1rem 1.25rem;
+    display: flex;
+    gap: 1rem;
+    border-bottom: 1px solid var(--bg-body);
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+.notif-item:hover {
+    background-color: #f8fafc;
+}
+
+.notif-item:last-child {
+    border-bottom: none;
+}
+
+.notif-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+.notif-content {
+    flex: 1;
+}
+
+.notif-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.notif-message {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin-bottom: 0.25rem;
+}
+
+.notif-time {
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.notif-empty {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+/* --- ADMIN OVERHAUL: TABS & MATRIX --- */
+.admin-tabs-nav {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.tab-link {
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    margin-bottom: -0.5rem;
+}
+
+.tab-link:hover {
+    color: var(--accent-primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.tab-link.active {
+    color: var(--accent-primary);
+    background: white;
+    border-color: var(--border-color);
+    border-bottom-color: white;
+}
+
+.admin-tab {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.admin-tab.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Permissions Matrix */
+.matrix-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.matrix-table th {
+    padding: 1rem;
+    background: var(--bg-body);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.matrix-table td {
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.matrix-module-name {
+    text-align: left !important;
+    font-weight: 600;
+    background: white;
+    color: var(--text-primary);
+}
+
+/* Custom Toggle Switch for Matrix */
+.perm-toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 22px;
+}
+
+.perm-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #e2e8f0;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px; width: 16px;
+    left: 3px; bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: var(--accent-primary);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(22px);
+}
+
+/* Audit Log specifics */
+.log-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.log-status.Success { background: #ecfdf5; color: #10b981; }
+.log-status.Failure { background: #fef2f2; color: #ef4444; }
+.log-status.Warning { background: #fffbeb; color: #f59e0b; }
+
+
