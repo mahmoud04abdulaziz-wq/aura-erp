@@ -5,18 +5,19 @@
  */
 
 try {
-    // Fetch all employees with department info
+    // Fetch all employees with department info and account status
     $employees = $pdo->query(
         "SELECT e.employee_id, e.first_name, e.last_name, e.email, e.hire_date,
                 e.verification_status, e.performance_score, e.base_allowances,
-                e.department_id,
+                e.department_id, e.role_id,
                 d.department_name,
                 r.role_name,
-                u.role_id
+                u.user_id AS has_account,
+                u.account_status
          FROM employees e
          JOIN departments d ON e.department_id = d.department_id
+         LEFT JOIN roles r ON e.role_id = r.role_id
          LEFT JOIN users u ON e.employee_id = u.employee_id
-         LEFT JOIN roles r ON u.role_id = r.role_id
          ORDER BY e.first_name, e.last_name"
     )->fetchAll(PDO::FETCH_ASSOC);
 
@@ -127,32 +128,43 @@ try {
                     <th>ID</th>
                     <th>Name</th>
                     <th>Department</th>
+                    <th>Role</th>
                     <th>Hire Date</th>
                     <th>Status</th>
+                    <th>Account</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($employees)): ?>
-                    <tr><td colspan="6" style="text-align:center; padding:3rem;">No employees found</td></tr>
+                    <tr><td colspan="8" style="text-align:center; padding:3rem;">No employees found</td></tr>
                 <?php else: ?>
                     <?php foreach ($employees as $emp): ?>
                         <?php
                         $statusBadge = match ($emp['verification_status']) { 'Approved' => 'completed', 'Rejected' => 'orange', default => 'pending' };
                         $fullName = $emp['first_name'] . ' ' . $emp['last_name'];
                         ?>
+                        <?php
+                        $hasAccount = !empty($emp['has_account']);
+                        $acctBadge = $hasAccount ? ($emp['account_status'] === 'Active' ? 'completed' : 'orange') : 'pending';
+                        $acctLabel = $hasAccount ? $emp['account_status'] : 'No Account';
+                        ?>
                         <tr data-name="<?= strtolower(htmlspecialchars($fullName)) ?>" data-dept="<?= htmlspecialchars($emp['department_name']) ?>">
                             <td><span style="font-family:monospace;">EMP-<?= $emp['employee_id'] ?></span></td>
                             <td><span style="font-weight:600;"><?= htmlspecialchars($fullName) ?></span><br><small style="color:var(--text-secondary);"><?= htmlspecialchars($emp['email']) ?></small></td>
                             <td><?= htmlspecialchars($emp['department_name']) ?></td>
+                            <td><?= htmlspecialchars($emp['role_name'] ?? '—') ?></td>
                             <td><?= $emp['hire_date'] ? date('M d, Y', strtotime($emp['hire_date'])) : '—' ?></td>
                             <td><span class="badge <?= $statusBadge ?>"><?= htmlspecialchars($emp['verification_status']) ?></span></td>
+                            <td><span class="badge <?= $acctBadge ?>"><?= $acctLabel ?></span></td>
                             <td>
                                 <div class="action-menu-container">
                                     <button class="action-btn" onclick="this.nextElementSibling.classList.toggle('active')"><i class="fa-solid fa-ellipsis-vertical"></i></button>
                                     <div class="dropdown-menu">
                                         <button class="dropdown-item" onclick="openEditEmployeeModal('<?= $emp['employee_id'] ?>', '<?= addslashes($emp['first_name']) ?>', '<?= addslashes($emp['last_name']) ?>', '<?= addslashes($emp['email']) ?>', '<?= $emp['department_id'] ?>', '<?= $emp['role_id'] ?? '' ?>')"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
+                                        <?php if ($hasAccount): ?>
                                         <button class="dropdown-item" onclick="resetUserPassword('<?= $emp['employee_id'] ?>')"><i class="fa-solid fa-key" style="color:var(--text-secondary);"></i> Reset Password</button>
+                                        <?php endif; ?>
                                         <button class="dropdown-item delete" onclick="deleteEmployee('<?= $emp['employee_id'] ?>')"><i class="fa-regular fa-trash-can"></i> Delete</button>
                                     </div>
                                 </div>
@@ -363,13 +375,23 @@ try {
                     </div>
                 </div>
 
-                ${!isEdit ? `<div style="margin-bottom:1.5rem;">
-                    <label style="display:block; margin-bottom:0.5rem;">Hire Date *</label>
-                    <input type="date" name="hire_date" required style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                ${!isEdit ? `<div style="display:flex; gap:1rem; margin-bottom:1.5rem;">
+                    <div style="flex:1;">
+                        <label style="display:block; margin-bottom:0.5rem;">Hire Date *</label>
+                        <input type="date" name="hire_date" required style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block; margin-bottom:0.5rem;">Verification Status *</label>
+                        <select name="verification_status" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px; font-size:0.95rem; background:var(--bg-component, #fff);">
+                            <option value="Pending">Pending</option>
+                            <option value="Approved" selected>Approved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
                 </div>` : ''}
 
                 <button type="submit" style="padding:0.75rem; background:var(--accent-primary); color:white; border:none; border-radius:8px; width:100%; cursor:pointer; font-weight:500;">
-                    ${isEdit ? 'Save Changes' : 'Create Employee'}
+                    ${isEdit ? 'Save Changes' : 'Add Employee'}
                 </button>
             </form>
         `;
@@ -399,7 +421,7 @@ try {
     }
 
     async function resetUserPassword(id) {
-        if (!confirm('Are you sure you want to reset this employee\\'s password back to the default (Welcome123!)?')) return;
+        if (!confirm('Are you sure you want to reset this employee\'s password back to the default (Welcome123!)?')) return;
         try {
             const fd = new FormData(); fd.append('employee_id', id);
             const res = await fetch('<?= BASE_URL ?>/modules/auth/reset_password.php', { method: 'POST', body: fd });

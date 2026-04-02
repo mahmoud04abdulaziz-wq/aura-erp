@@ -23,6 +23,7 @@ $viewMap = [
     'invoices' => ['Invoices', 'finance', __DIR__ . '/views/invoices.php'],
     'analytics' => ['Analytics', 'dashboard', __DIR__ . '/views/analytics.php'],
     'reports' => ['Reports', 'dashboard', __DIR__ . '/views/reports.php'],
+    'admin' => ['User Accounts', 'admin', __DIR__ . '/views/admin.php'],
     'settings' => ['Settings', 'dashboard', __DIR__ . '/views/settings.php'],
 ];
 

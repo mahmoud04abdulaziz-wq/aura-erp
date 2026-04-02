@@ -1,4 +1,9 @@
 <?php
+/**
+ * AURA ERP — Create Employee (HR)
+ * Adds an employee record. Does NOT create a system account.
+ * Account provisioning is handled separately by IT/Admin.
+ */
 require_once __DIR__ . '/../../config/db_connect.php';
 require_once __DIR__ . '/../auth/session_guard.php';
 requireLogin();
@@ -6,7 +11,6 @@ requireLogin();
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Basic permission check (assuming role_id 5 is HR or role_id 1 is Admin, OR simply relying on module-level auth which we can simulate)
 
     $firstName = trim($_POST['first_name'] ?? '');
     $lastName = trim($_POST['last_name'] ?? '');
@@ -14,6 +18,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $departmentId = $_POST['department_id'] ?? null;
     $hireDate = $_POST['hire_date'] ?? null;
     $roleId = $_POST['role_id'] ?? null;
+    $status = $_POST['verification_status'] ?? 'Pending';
+
+    // Validate status
+    if (!in_array($status, ['Pending', 'Approved', 'Rejected'])) {
+        $status = 'Pending';
+    }
 
     if (!$firstName || !$lastName || !$email || !$departmentId || !$hireDate || !$roleId) {
         echo json_encode(['success' => false, 'error' => 'Missing required fields']);
@@ -22,20 +32,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO employees (first_name, last_name, email, department_id, hire_date, verification_status)
-            VALUES (?, ?, ?, ?, ?, 'Approved')
+            INSERT INTO employees (first_name, last_name, email, department_id, hire_date, role_id, verification_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
         
-        $stmt->execute([$firstName, $lastName, $email, $departmentId, $hireDate]);
+        $stmt->execute([$firstName, $lastName, $email, $departmentId, $hireDate, $roleId, $status]);
         $newId = $pdo->lastInsertId();
-
-        // Automatically create user account
-        $hash = password_hash('Welcome123!', PASSWORD_BCRYPT);
-        $userStmt = $pdo->prepare("
-            INSERT INTO users (email, password_hash, role_id, employee_id)
-            VALUES (?, ?, ?, ?)
-        ");
-        $userStmt->execute([$email, $hash, $roleId, $newId]);
 
         echo json_encode(['success' => true, 'employee_id' => $newId]);
     } catch (PDOException $e) {

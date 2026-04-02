@@ -20,6 +20,7 @@ $navModules = [
     'invoices' => ['fa-solid fa-file-invoice', 'Invoices', 'finance'],
     'analytics' => ['fa-solid fa-chart-pie', 'Analytics', 'dashboard'],
     'reports' => ['fa-solid fa-print', 'Reports', 'dashboard'],
+    'admin' => ['fa-solid fa-user-shield', 'User Accounts', 'admin'],
 ];
 ?>
 <aside class="sidebar" id="sidebar">
