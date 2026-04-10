@@ -73,18 +73,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $yieldQty = $actualYield ?? $batch['actual_yield'] ?? $batch['target_quantity'];
             $targetQty = $batch['target_quantity'];
             $userId = $_SESSION['user_id'] ?? 1;
+            $batchLabel = "Mix {$prodId} ({$batch['item_name']})";
 
-            // 1. FIND THE RECIPE for this finished good
-            $recipeStmt = $pdo->prepare("SELECT recipe_id, base_yield_qty FROM recipes WHERE finished_item_id = ? LIMIT 1");
-            $recipeStmt->execute([$itemId]);
+            // 1. FIND THE RECIPE (compatible with both legacy and mix model)
+            $colCheck = $pdo->query("SHOW COLUMNS FROM recipes LIKE 'finished_item_id'");
+            if ($colCheck->rowCount() > 0) {
+                $recipeStmt = $pdo->prepare("SELECT recipe_id, base_yield_qty FROM recipes WHERE finished_item_id = ? LIMIT 1");
+                $recipeStmt->execute([$itemId]);
+            } else {
+                $recipeStmt = $pdo->query("SELECT recipe_id, base_yield_qty FROM recipes LIMIT 1");
+            }
             $recipe = $recipeStmt->fetch();
 
             $totalBomCost = 0;
 
             if ($recipe) {
-                $scaleFactor = $targetQty / max(1, $recipe['base_yield_qty']);
+                $scaleFactor = $targetQty / max(1, (float)$recipe['base_yield_qty']);
 
-                // 2. DEDUCT RAW MATERIALS based on recipe ingredients
+                // 2. DEDUCT RAW MATERIALS with STOCK VALIDATION
                 $ingStmt = $pdo->prepare("
                     SELECT ri.raw_material_id, ri.quantity_required, im.item_name, im.standard_cost
                     FROM recipe_ingredients ri
@@ -92,35 +98,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     WHERE ri.recipe_id = ?
                 ");
                 $ingStmt->execute([$recipe['recipe_id']]);
-                $ingredients = $ingStmt->fetchAll();
 
-                foreach ($ingredients as $ing) {
+                foreach ($ingStmt->fetchAll() as $ing) {
                     $consumeQty = round($ing['quantity_required'] * $scaleFactor, 3);
-                    $materialCost = $consumeQty * $ing['standard_cost'];
-                    $totalBomCost += $materialCost;
-
-                    // Deduct from inventory ledger
-                    $deduct = $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Consumed', ?, ?, ?)");
-                    $deduct->execute([$ing['raw_material_id'], -$consumeQty, 'PRD-' . $prodId, $userId]);
+                    
+                    // STOCK VALIDATION: get current stock and clamp
+                    $stockStmt = $pdo->prepare("SELECT COALESCE(SUM(quantity_change),0) FROM inventory_ledger WHERE item_id = ?");
+                    $stockStmt->execute([$ing['raw_material_id']]);
+                    $currentStock = (float)$stockStmt->fetchColumn();
+                    
+                    if ($consumeQty > $currentStock) {
+                        $consumeQty = max(0, $currentStock);
+                        addNotification($pdo, "⚠️ Stock Shortage", "{$ing['item_name']} insufficient for {$batchLabel}. Used remaining {$consumeQty}.", 'inventory');
+                    }
+                    
+                    if ($consumeQty > 0) {
+                        $totalBomCost += $consumeQty * $ing['standard_cost'];
+                        $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Consumed', ?, ?, ?)")
+                            ->execute([$ing['raw_material_id'], -$consumeQty, $batchLabel, $userId]);
+                    }
                 }
             }
 
-            // 3. CREDIT FINISHED GOODS into inventory
-            $creditFG = $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Produced', ?, ?, ?)");
-            $creditFG->execute([$itemId, $yieldQty, 'PRD-' . $prodId, $userId]);
+            // 3. CREDIT FINISHED GOODS
+            $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Produced', ?, ?, ?)")
+                ->execute([$itemId, $yieldQty, $batchLabel, $userId]);
 
-            // 4. RECORD BOM EXPENSE in finance ledger
+            // 4. RECORD BOM EXPENSE
             if ($totalBomCost > 0) {
-                $bomTransId = 'BOM-' . time();
                 $pdo->prepare("INSERT INTO finance_ledger (transaction_id, transaction_date, transaction_type, category, amount, reference_id, recorded_by) VALUES (?, CURRENT_DATE(), 'Expense', 'Production Materials (BOM)', ?, ?, ?)")
-                    ->execute([$bomTransId, $totalBomCost, $prodId, $userId]);
+                    ->execute(['BOM-' . time(), $totalBomCost, $batchLabel, $userId]);
             }
 
-            // 5. NOTIFY stakeholders
+            // 5. NOTIFY
             $costStr = number_format($totalBomCost, 2);
-            addNotification($pdo, "Batch Completed ✅", "Batch {$prodId} completed. {$yieldQty} units of {$batch['item_name']} produced. BOM cost: \${$costStr}", 'manufacturing');
-            addNotification($pdo, "Inventory Updated", "Finished goods +{$yieldQty}. Raw materials consumed per recipe. Review in Inventory.", 'inventory');
-            addNotification($pdo, "BOM Expense Recorded", "Production BOM cost of \${$costStr} for batch {$prodId} recorded in General Ledger.", 'finance');
+            addNotification($pdo, "✅ Batch Completed", "{$batchLabel}: {$yieldQty} units produced. BOM cost: \${$costStr}", 'manufacturing');
+            addNotification($pdo, "📦 Inventory Updated", "FG +{$yieldQty}. Raw materials consumed per recipe for {$batchLabel}.", 'inventory');
         }
 
         echo json_encode(['success' => true]);

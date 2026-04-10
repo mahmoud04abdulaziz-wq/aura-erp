@@ -81,10 +81,14 @@ function getProgressColor($status) {
                                 <div class="progress-bar-fill" style="width: <?= $pct ?>%; background: <?= $pColor ?>;" data-progress="<?= $pct ?>"></div>
                             </div>
                             
-                            <!-- Step Dots -->
+                            <!-- Step Dots (use card's own status, not column) -->
+                            <?php 
+                                $cardStep = array_search($order['order_status'], $statusSteps);
+                                $cardStep = ($cardStep !== false) ? $cardStep + 1 : 1;
+                            ?>
                             <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem;">
                                 <?php foreach ($statusSteps as $i => $step): ?>
-                                    <?php $stepNum = $i + 1; $active = $col['step'] >= $stepNum; ?>
+                                    <?php $stepNum = $i + 1; $active = $cardStep >= $stepNum; ?>
                                     <div style="width:16px; height:16px; border-radius:50%; background:<?= $active ? $pColor : 'var(--border-color)' ?>; display:flex; align-items:center; justify-content:center; transition: all 0.3s;">
                                         <?php if ($active): ?>
                                             <i class="fa-solid fa-check" style="font-size:0.5rem; color:white;"></i>
@@ -273,16 +277,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await res.json();
                 if (!data.success) {
                     alert('Failed to update order status: ' + data.error);
-                    window.location.reload();
                 }
-                // Update column header counts after a short delay
-                setTimeout(() => {
-                    document.querySelectorAll('.kanban-column').forEach(col => {
-                        const count = col.querySelectorAll('.kanban-card').length;
-                        const badge = col.querySelector('.badge');
-                        if (badge) badge.textContent = count;
-                    });
-                }, 300);
+                // Force full reload to guarantee DB-truth rendering
+                // This prevents stale visual state from cached drag-drops
+                setTimeout(() => window.location.reload(), 800);
             } catch (err) {
                 alert('Network error while moving order.');
                 window.location.reload();
