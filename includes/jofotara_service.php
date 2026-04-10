@@ -227,23 +227,24 @@ class JoFotaraService
 
     /**
      * Simulate a submission for demo/presentation purposes.
-     * Returns a locally-generated QR code data string.
+     * Returns a verification URL that links to the public invoice verification page.
      */
     private function simulateSubmission(array $invoiceData): array
     {
-        // Build a TLV (Tag-Length-Value) structure similar to ZATCA/JoFotara QR encoding
-        $tlvData = '';
-        $tlvData .= $this->tlvEncode(1, 'MiskStone - مسك للحجر الصناعي والديكور');
-        $tlvData .= $this->tlvEncode(2, $invoiceData['SellerTaxID'] ?? 'JO-00000000');
-        $tlvData .= $this->tlvEncode(3, $invoiceData['IssueDate'] ?? date('Y-m-d\TH:i:s'));
-        $tlvData .= $this->tlvEncode(4, number_format($invoiceData['GrandTotal'] ?? 0, 2, '.', ''));
-        $tlvData .= $this->tlvEncode(5, number_format($invoiceData['TaxAmount'] ?? 0, 2, '.', ''));
-
-        $qrBase64 = base64_encode($tlvData);
+        // Build a scannable verification URL (much more useful than raw TLV binary)
+        $invoiceNumber = $invoiceData['InvoiceNumber'] ?? 'UNKNOWN';
+        
+        // Determine the base URL dynamically
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $basePath = dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/grad-project-prototype/app.php'));
+        if ($basePath === '\\' || $basePath === '/') $basePath = '/grad-project-prototype';
+        
+        $verifyUrl = "{$protocol}://{$host}{$basePath}/verify_invoice.php?id=" . urlencode($invoiceNumber);
 
         return [
             'success' => true,
-            'qr_code' => $qrBase64,
+            'qr_code' => $verifyUrl,
             'submission_id' => 'SIM-' . date('YmdHis') . '-' . mt_rand(1000, 9999),
             'error' => null,
             'simulated' => true,
