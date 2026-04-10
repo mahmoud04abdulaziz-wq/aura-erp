@@ -8,7 +8,7 @@ require_once dirname(__DIR__, 2) . '/config/db_connect.php';
 
 // If already logged in, redirect to dashboard
 if (isset($_SESSION['user_id'])) {
-    header('Location: ' . BASE_URL . '/index.php');
+    header('Location: ' . BASE_URL . '/app.php');
     exit;
 }
 
@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 // No MFA — set session directly
                 setUserSession($user, $pdo);
-                header('Location: ' . BASE_URL . '/index.php');
+                header('Location: ' . BASE_URL . '/app.php');
                 exit;
             }
         }

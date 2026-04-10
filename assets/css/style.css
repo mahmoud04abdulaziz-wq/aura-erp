@@ -344,7 +344,11 @@ ul {
 }
 
 .welcome-banner p {
-    color: var(--text-secondary);
+    color: inherit;
+}
+
+.welcome-banner h1 {
+    color: inherit;
 }
 
 .highlight {

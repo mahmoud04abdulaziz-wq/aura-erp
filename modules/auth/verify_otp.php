@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Clean up
             unset($_SESSION['otp_pending_user_id'], $_SESSION['otp_code_display']);
 
-            header('Location: ' . BASE_URL . '/index.php');
+            header('Location: ' . BASE_URL . '/app.php');
             exit;
         }
     }

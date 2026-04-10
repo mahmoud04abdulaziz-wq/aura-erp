@@ -513,3 +513,18 @@ $badgeMap = [
         }
     }
 </script>
+
+<?php if (isset($_GET['action']) && $_GET['action'] === 'newFromLead' && isset($_GET['lead_id'])): ?>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        openOrderModal();
+        setTimeout(() => {
+            const leadId = "<?= htmlspecialchars($_GET['lead_id']) ?>";
+            const opt = document.querySelector(`.custom-option[data-value="${leadId}"]`);
+            if(opt) {
+                opt.click();
+            }
+        }, 150);
+    });
+</script>
+<?php endif; ?>

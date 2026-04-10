@@ -37,6 +37,10 @@ try {
     $logStmt = $pdo->prepare("INSERT INTO system_logs (user_id, action_type, description, status) VALUES (?, 'CREATE_ORDER', ?, 'Success')");
     $logStmt->execute([$handled_by, "Created new sales order: $so_id"]);
     
+    // Automatically convert lead status if this is their first order originating from the web
+    $updateLead = $pdo->prepare("UPDATE customers SET lead_status = 'Converted' WHERE customer_id = ? AND lead_status = 'New'");
+    $updateLead->execute([$customer_id]);
+    
     echo json_encode(['success' => true, 'message' => 'Order created successfully.', 'so_id' => $so_id]);
 } catch (Exception $e) {
     error_log("Failed to create order: " . $e->getMessage());

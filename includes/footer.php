@@ -22,7 +22,7 @@
         <hr>
         <ul class="profile-menu">
             <li><a href="#" onclick="openChangePasswordModal(event)">Change Password</a></li>
-            <li><a href="<?= BASE_URL ?>/index.php?view=settings">Account Settings</a></li>
+            <li><a href="<?= BASE_URL ?>/app.php?view=settings">Account Settings</a></li>
             <li><a href="<?= BASE_URL ?>/modules/auth/logout.php">Logout</a></li>
         </ul>
     </div>

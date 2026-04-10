@@ -60,8 +60,8 @@ try {
         <div class="card" style="margin-bottom: 2rem;">
             <!-- Tabs -->
             <div style="display:flex; border-bottom:1px solid var(--border-color); margin-bottom:1rem;">
-                <a href="<?= BASE_URL ?>/index.php?view=inventory&tab=finished" style="padding:1rem 1.5rem; text-decoration:none; font-weight:600; color: <?= $tab === 'finished' ? 'var(--accent-primary)' : 'var(--text-secondary)' ?>; border-bottom: 2px solid <?= $tab === 'finished' ? 'var(--accent-primary)' : 'transparent' ?>;">Finished Goods</a>
-                <a href="<?= BASE_URL ?>/index.php?view=inventory&tab=raw" style="padding:1rem 1.5rem; text-decoration:none; font-weight:600; color: <?= $tab === 'raw' ? 'var(--accent-primary)' : 'var(--text-secondary)' ?>; border-bottom: 2px solid <?= $tab === 'raw' ? 'var(--accent-primary)' : 'transparent' ?>;">Raw Materials</a>
+                <a href="<?= BASE_URL ?>/app.php?view=inventory&tab=finished" style="padding:1rem 1.5rem; text-decoration:none; font-weight:600; color: <?= $tab === 'finished' ? 'var(--accent-primary)' : 'var(--text-secondary)' ?>; border-bottom: 2px solid <?= $tab === 'finished' ? 'var(--accent-primary)' : 'transparent' ?>;">Finished Goods</a>
+                <a href="<?= BASE_URL ?>/app.php?view=inventory&tab=raw" style="padding:1rem 1.5rem; text-decoration:none; font-weight:600; color: <?= $tab === 'raw' ? 'var(--accent-primary)' : 'var(--text-secondary)' ?>; border-bottom: 2px solid <?= $tab === 'raw' ? 'var(--accent-primary)' : 'transparent' ?>;">Raw Materials</a>
             </div>
 
             <div style="padding-bottom: 4rem;">

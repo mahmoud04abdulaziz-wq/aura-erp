@@ -11,7 +11,7 @@ $activeView = $_GET['view'] ?? 'dashboard';
 $navModules = [
     'dashboard' => ['fa-solid fa-chart-line', 'Dashboard', 'dashboard'],
     'orders' => ['fa-solid fa-layer-group', 'Orders', 'crm'],
-    'kanban' => ['fa-solid fa-table-columns', 'Orders Progress', 'crm'],
+    'kanban' => ['fa-solid fa-table-columns', 'Active Batches', 'manufacturing'],
     'production' => ['fa-solid fa-shapes', 'Production', 'manufacturing'],
     'inventory' => ['fa-solid fa-warehouse', 'Inventory', 'inventory'],
     'procurement' => ['fa-solid fa-truck-fast', 'Procurement', 'procurement'],
@@ -37,7 +37,7 @@ $navModules = [
             <?php foreach ($navModules as $viewId => [$icon, $label, $permission]): ?>
                 <?php if (hasPermission($permission)): ?>
                     <li data-view="<?= $viewId ?>" <?= ($activeView === $viewId) ? ' class="active"' : '' ?>>
-                        <a href="<?= BASE_URL ?>/index.php?view=<?= $viewId ?>">
+                        <a href="<?= BASE_URL ?>/app.php?view=<?= $viewId ?>">
                             <i class="<?= $icon ?>"></i>
                             <span><?= htmlspecialchars($label) ?></span>
                         </a>
@@ -48,6 +48,6 @@ $navModules = [
     </nav>
 
     <div class="sidebar-footer">
-        <a href="<?= BASE_URL ?>/index.php?view=settings"><i class="fa-solid fa-gear"></i> <span>Settings</span></a>
+        <a href="<?= BASE_URL ?>/app.php?view=settings"><i class="fa-solid fa-gear"></i> <span>Settings</span></a>
     </div>
 </aside>
