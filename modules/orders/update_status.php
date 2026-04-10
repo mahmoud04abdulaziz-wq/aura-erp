@@ -83,25 +83,31 @@ try {
         
         addNotification($pdo, "Revenue Recorded", "Payment of $" . number_format($val, 2) . " received for {$so_id}", 'finance');
 
-        // --- Jo-Fatoorah Compliance (Jordanian Electronic National Billing System) ---
-        // Generate compliant invoice data payload for tax authority integration
+        // --- JoFotara Compliance (نظام الفوترة الوطني الإلكتروني) ---
+        // Submit invoice to ISTD via the JoFotara web service
+        require_once __DIR__ . '/../../includes/jofotara_service.php';
+        
         $invoicePayload = [
             'InvoiceNumber' => 'INV-' . date('Ymd') . '-' . substr(md5($so_id), 0, 6),
             'IssueDate' => date('Y-m-d'),
-            'SellerName' => 'MiskStone - مسك للحجر الصناعي والديكور',
-            'SellerTaxID' => 'JO-PENDING-TAX-ID',
+            'SellerTaxID' => 'JO-PENDING-TAX-ID', // Replace with real tax ID from ISTD
             'BuyerName' => $soData['company_name'] ?? 'Unknown',
             'BuyerEmail' => $soData['email'] ?? '',
             'TotalAmount' => $val,
-            'TaxRate' => 0.16, // Jordan standard sales tax 16%
+            'TaxRate' => 0.16,
             'TaxAmount' => round($val * 0.16, 2),
             'GrandTotal' => round($val * 1.16, 2),
             'Currency' => 'JOD',
             'PaymentMethod' => $soData['payment_method'] ?? 'Bank Transfer',
             'ReferenceOrderID' => $so_id,
         ];
-        // QR Code data string (simulated Jo-Fatoorah signed hash)
-        $qrData = base64_encode(json_encode($invoicePayload));
+        
+        $joFotara = new JoFotaraService($pdo);
+        $submissionResult = $joFotara->submitInvoice($invoicePayload);
+        
+        // Get the QR code (either from ISTD or simulated)
+        $qrData = $submissionResult['qr_code'] ?? base64_encode(json_encode($invoicePayload));
+        $submissionStatus = $submissionResult['success'] ? 'Submitted' : 'Failed';
         
         // Store invoice record
         $pdo->exec("CREATE TABLE IF NOT EXISTS invoices_jo (
@@ -109,12 +115,20 @@ try {
             so_id VARCHAR(50) NOT NULL,
             payload JSON NOT NULL,
             qr_code TEXT,
+            submission_status VARCHAR(20) DEFAULT 'Pending',
+            istd_ref VARCHAR(100) DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )");
-        $invStmt = $pdo->prepare("INSERT IGNORE INTO invoices_jo (invoice_id, so_id, payload, qr_code) VALUES (?, ?, ?, ?)");
-        $invStmt->execute([$invoicePayload['InvoiceNumber'], $so_id, json_encode($invoicePayload), $qrData]);
+        $invStmt = $pdo->prepare("INSERT IGNORE INTO invoices_jo (invoice_id, so_id, payload, qr_code, submission_status, istd_ref) VALUES (?, ?, ?, ?, ?, ?)");
+        $invStmt->execute([
+            $invoicePayload['InvoiceNumber'], $so_id, 
+            json_encode($invoicePayload), $qrData,
+            $submissionStatus, $submissionResult['submission_id'] ?? null
+        ]);
         
-        addNotification($pdo, "Jo-Fatoorah Invoice", "Tax-compliant invoice {$invoicePayload['InvoiceNumber']} generated for {$so_id}", 'finance');
+        $statusEmoji = $submissionResult['success'] ? '✅' : '⚠️';
+        $simNote = !empty($submissionResult['simulated']) ? ' (Demo Mode — configure ISTD credentials to submit live)' : '';
+        addNotification($pdo, "JoFotara Invoice {$statusEmoji}", "Invoice {$invoicePayload['InvoiceNumber']} for {$so_id} — {$submissionStatus}{$simNote}", 'finance');
 
         // --- BOM Cost Report to Finance ---
         // Find production orders linked to this Sales Order and notify finance

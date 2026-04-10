@@ -1,7 +1,7 @@
 <?php
 /**
  * MiskStone ERP — Settings View
- * User profile + Bug Report / Maintenance Request form.
+ * User profile + Bug Report + JoFotara (ISTD) Configuration.
  */
 
 $userName = getCurrentUserName();
@@ -17,7 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bug_action'])) {
     
     if (!empty($bugTitle) && !empty($bugDesc)) {
         try {
-            // Create bug_reports table if needed
             $pdo->exec("CREATE TABLE IF NOT EXISTS bug_reports (
                 report_id INT AUTO_INCREMENT PRIMARY KEY,
                 reported_by INT NOT NULL,
@@ -32,7 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bug_action'])) {
             $stmt = $pdo->prepare("INSERT INTO bug_reports (reported_by, title, description, priority) VALUES (?, ?, ?, ?)");
             $stmt->execute([$_SESSION['user_id'], $bugTitle, $bugDesc, $bugPriority]);
             
-            // Notify IT Admin
             require_once __DIR__ . '/../includes/notifications.php';
             addNotification($pdo, "Bug Report", "New ticket: {$bugTitle} (Priority: {$bugPriority})", 'admin');
             
@@ -42,6 +40,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bug_action'])) {
         }
     }
 }
+
+// Handle JoFotara credential save (IT Admin / Executive only)
+$joSuccess = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['jofotara_action'])) {
+    $jClientId = trim($_POST['jo_client_id'] ?? '');
+    $jSecretKey = trim($_POST['jo_secret_key'] ?? '');
+    $jSandbox = isset($_POST['jo_sandbox']) ? true : false;
+    
+    if (!empty($jClientId) && !empty($jSecretKey)) {
+        require_once __DIR__ . '/../includes/jofotara_service.php';
+        JoFotaraService::saveCredentials($pdo, $jClientId, $jSecretKey, $jSandbox);
+        $joSuccess = 'JoFotara ISTD credentials saved successfully!';
+    }
+}
+
+// Load current JoFotara credentials for display
+$joConfig = [];
+try {
+    $cfgRows = $pdo->query("SELECT config_key, config_value FROM system_config WHERE config_key LIKE 'jofotara_%'")->fetchAll();
+    foreach ($cfgRows as $row) $joConfig[$row['config_key']] = $row['config_value'];
+} catch (Exception $e) { /* table may not exist yet */ }
 ?>
 
 <div style="max-width:800px;">
@@ -134,5 +153,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bug_action'])) {
         </button>
     </form>
 </div>
+
+<!-- JoFotara ISTD Configuration (IT Admin / Executive Only) -->
+<?php if (in_array($userRole, ['IT Administrator', 'Executive Board'])): ?>
+<div class="card" style="margin-top: 1.5rem; border-left: 4px solid #059669;">
+    <div class="card-header">
+        <h3><i class="fa-solid fa-file-shield" style="color:#059669; margin-right:0.5rem;"></i>JoFotara — ISTD Integration (نظام الفوترة الوطني)</h3>
+    </div>
+    
+    <div style="background:#eff6ff; border:1px solid #bfdbfe; padding:1rem; border-radius:8px; margin-bottom:1.5rem; font-size:0.85rem; color:#1e40af;">
+        <i class="fa-solid fa-info-circle" style="margin-right:0.5rem;"></i>
+        <strong>How to connect:</strong> Login to <a href="https://www.istd.gov.jo" target="_blank" style="color:#1e40af;">istd.gov.jo</a> → 
+        نظام الفوترة الوطني → ربط الأجهزة → ربط جديد → Copy your <strong>Client ID</strong> and <strong>Secret Key</strong>.
+    </div>
+
+    <?php if ($joSuccess): ?>
+        <div style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; padding:1rem; border-radius:8px; margin-bottom:1rem;">
+            <i class="fa-solid fa-check-circle" style="margin-right:0.5rem;"></i><?= htmlspecialchars($joSuccess) ?>
+        </div>
+    <?php endif; ?>
+
+    <form method="POST">
+        <input type="hidden" name="jofotara_action" value="save">
+        
+        <div style="margin-bottom:1rem;">
+            <label style="display:block; font-weight:600; margin-bottom:0.5rem;">Client ID (رقم المستخدم)</label>
+            <input type="text" name="jo_client_id" value="<?= htmlspecialchars($joConfig['jofotara_client_id'] ?? '') ?>" 
+                placeholder="Paste your ISTD Client ID here"
+                style="width:100%; padding:0.75rem 1rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-body); color:var(--text-primary); font-family:monospace;">
+        </div>
+        
+        <div style="margin-bottom:1rem;">
+            <label style="display:block; font-weight:600; margin-bottom:0.5rem;">Secret Key (المفتاح السري)</label>
+            <input type="password" name="jo_secret_key" value="<?= htmlspecialchars($joConfig['jofotara_secret_key'] ?? '') ?>" 
+                placeholder="Paste your ISTD Secret Key here"
+                style="width:100%; padding:0.75rem 1rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-body); color:var(--text-primary); font-family:monospace;">
+        </div>
+
+        <div style="margin-bottom:1.5rem; display:flex; align-items:center; gap:0.75rem;">
+            <input type="checkbox" name="jo_sandbox" id="jo_sandbox" <?= ($joConfig['jofotara_sandbox'] ?? '1') === '1' ? 'checked' : '' ?>
+                style="width:18px; height:18px; accent-color:var(--accent-primary);">
+            <label for="jo_sandbox" style="font-size:0.9rem;">Sandbox / Demo Mode (simulate submissions without contacting ISTD)</label>
+        </div>
+
+        <button type="submit" style="padding:0.75rem 1.5rem; background:#059669; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:1rem;">
+            <i class="fa-solid fa-floppy-disk" style="margin-right:0.5rem;"></i>Save ISTD Credentials
+        </button>
+    </form>
+</div>
+<?php endif; ?>
 
 </div>
