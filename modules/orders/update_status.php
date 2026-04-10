@@ -48,24 +48,59 @@ try {
             addNotification($pdo, "New Production Batch", "Sales Order {$so_id} triggered Production Batch {$prod_id}", 'manufacturing');
         }
     } elseif ($status === 'Pending Delivery') {
-        // --- PIPELINE AUTOMATION HOOK (Automate Warehouse) ---
-        // Deduct Raw Materials and Add Finished Goods based on assuming 1 batch of target FG.
-        // For the sake of the demo, we will insert a ledger entry for the parent finished good.
-        $fgStmt = $pdo->query("SELECT item_id FROM item_master WHERE category = 'Finished Good' LIMIT 1");
-        $fg = $fgStmt->fetchColumn();
-        if ($fg) {
-            $ledger = $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Produced', 100, ?, ?)");
-            $ledger->execute([$fg, "SO-BATCH-" . $so_id, $_SESSION['user_id'] ?? 1]);
+        // Mark any linked production batches as Completed  
+        // (Inventory deductions happen inside update_batch.php when batch → Completed)
+        $linkedBatches = $pdo->prepare("SELECT production_id FROM production_orders WHERE status IN ('Mixing','Curing','Planned') ORDER BY created_at DESC LIMIT 1");
+        $linkedBatches->execute();
+        $linkedBatch = $linkedBatches->fetchColumn();
+        
+        if ($linkedBatch) {
+            // Auto-complete the batch (inventory impacts handled by update_batch logic)
+            $pdo->prepare("UPDATE production_orders SET status = 'Completed', qa_status = 'Passed', actual_yield = target_quantity WHERE production_id = ?")->execute([$linkedBatch]);
             
-            // Deduct an arbitrary raw material to prove automation
-            $rmStmt = $pdo->query("SELECT item_id FROM item_master WHERE category = 'Raw Material' LIMIT 1");
-            $rm = $rmStmt->fetchColumn();
-            if ($rm) {
-               $ledger = $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Consumed', -300, ?, ?)");
-               $ledger->execute([$rm, "SO-BATCH-" . $so_id, $_SESSION['user_id'] ?? 1]);
+            // Trigger the same inventory automation as update_batch.php
+            $batchInfo = $pdo->prepare("SELECT po.*, im.item_name FROM production_orders po JOIN item_master im ON po.item_id = im.item_id WHERE po.production_id = ?");
+            $batchInfo->execute([$linkedBatch]);
+            $batch = $batchInfo->fetch();
+            
+            if ($batch) {
+                $itemId = $batch['item_id'];
+                $yieldQty = $batch['target_quantity'];
+                $userId = $_SESSION['user_id'] ?? 1;
+                $totalBomCost = 0;
+
+                // Find recipe and deduct raw materials
+                $recipeStmt = $pdo->prepare("SELECT recipe_id, base_yield_qty FROM recipes WHERE finished_item_id = ? LIMIT 1");
+                $recipeStmt->execute([$itemId]);
+                $recipe = $recipeStmt->fetch();
+
+                if ($recipe) {
+                    $scaleFactor = $yieldQty / max(1, $recipe['base_yield_qty']);
+                    $ingStmt = $pdo->prepare("SELECT ri.raw_material_id, ri.quantity_required, im.standard_cost FROM recipe_ingredients ri JOIN item_master im ON ri.raw_material_id = im.item_id WHERE ri.recipe_id = ?");
+                    $ingStmt->execute([$recipe['recipe_id']]);
+                    foreach ($ingStmt->fetchAll() as $ing) {
+                        $consumeQty = round($ing['quantity_required'] * $scaleFactor, 3);
+                        $totalBomCost += $consumeQty * $ing['standard_cost'];
+                        $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Consumed', ?, ?, ?)")
+                            ->execute([$ing['raw_material_id'], -$consumeQty, 'SO-' . $so_id, $userId]);
+                    }
+                }
+
+                // Credit finished goods
+                $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Produced', ?, ?, ?)")
+                    ->execute([$itemId, $yieldQty, 'SO-' . $so_id, $userId]);
+
+                // Record BOM expense
+                if ($totalBomCost > 0) {
+                    $pdo->prepare("INSERT INTO finance_ledger (transaction_id, transaction_date, transaction_type, category, amount, reference_id, recorded_by) VALUES (?, CURRENT_DATE(), 'Expense', 'Production Materials (BOM)', ?, ?, ?)")
+                        ->execute(['BOM-' . time(), $totalBomCost, $so_id, $userId]);
+                }
+
+                addNotification($pdo, "Production Complete ✅", "Batch {$linkedBatch} auto-completed for order {$so_id}. Raw materials consumed, finished goods stocked.", 'manufacturing');
+                addNotification($pdo, "BOM Cost Recorded", "Material cost of $" . number_format($totalBomCost, 2) . " for {$so_id} recorded in General Ledger.", 'finance');
             }
-            
-            addNotification($pdo, "Inventory Updated", "Batch completed for {$so_id}. Stock levels automatically updated.", 'inventory');
+        } else {
+            addNotification($pdo, "QC Passed", "Order {$so_id} passed quality check and is ready for delivery.", 'manufacturing');
         }
     } elseif ($status === 'Delivered') {
         // Realize Financial Income
