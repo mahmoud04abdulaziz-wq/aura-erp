@@ -227,24 +227,25 @@ class JoFotaraService
 
     /**
      * Simulate a submission for demo/presentation purposes.
-     * Returns a verification URL that links to the public invoice verification page.
+     * Generates a structural TLV (Tag-Length-Value) Base64 encoded QR Code
+     * identical to the standard used by ISTD / Sanad App.
      */
     private function simulateSubmission(array $invoiceData): array
     {
-        // Build a scannable verification URL (much more useful than raw TLV binary)
-        $invoiceNumber = $invoiceData['InvoiceNumber'] ?? 'UNKNOWN';
-        
-        // Determine the base URL dynamically
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        $basePath = dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/grad-project-prototype/app.php'));
-        if ($basePath === '\\' || $basePath === '/') $basePath = '/grad-project-prototype';
-        
-        $verifyUrl = "{$protocol}://{$host}{$basePath}/verify_invoice.php?id=" . urlencode($invoiceNumber);
+        // Build a TLV (Tag-Length-Value) structure similar to JoFotara / ZATCA QR encoding
+        $tlvData = '';
+        $tlvData .= $this->tlvEncode(1, 'MiskStone - مسك للحجر الصناعي والديكور');
+        $tlvData .= $this->tlvEncode(2, $invoiceData['SellerTaxID'] ?? 'JO-00000000');
+        $tlvData .= $this->tlvEncode(3, $invoiceData['IssueDate'] ?? date('Y-m-d\TH:i:s'));
+        $tlvData .= $this->tlvEncode(4, number_format($invoiceData['GrandTotal'] ?? 0, 2, '.', ''));
+        $tlvData .= $this->tlvEncode(5, number_format($invoiceData['TaxAmount'] ?? 0, 2, '.', ''));
+        $tlvData .= $this->tlvEncode(6, hash('sha256', $invoiceData['InvoiceNumber'] ?? 'Unknown'));
+
+        $qrBase64 = base64_encode($tlvData);
 
         return [
             'success' => true,
-            'qr_code' => $verifyUrl,
+            'qr_code' => $qrBase64,
             'submission_id' => 'SIM-' . date('YmdHis') . '-' . mt_rand(1000, 9999),
             'error' => null,
             'simulated' => true,
