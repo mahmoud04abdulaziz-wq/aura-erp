@@ -93,7 +93,8 @@ try {
             }
             
             if ($fg) {
-                $insertProd = $pdo->prepare("INSERT INTO production_orders (production_id, item_id, target_quantity, status, operator_user_id) VALUES (?, ?, 100, 'Planned', ?)");
+                // target_quantity = 1 means ONE mix run. The mix_outputs table defines what products come out.
+                $insertProd = $pdo->prepare("INSERT INTO production_orders (production_id, item_id, target_quantity, status, operator_user_id) VALUES (?, ?, 1, 'Planned', ?)");
                 $insertProd->execute([$prod_id, $fg, $userId]);
             }
         }
@@ -134,7 +135,8 @@ try {
                 $recipe = $recipeStmt->fetch();
 
                 if ($recipe) {
-                    $scaleFactor = $yieldQty / max(1, (float)$recipe['base_yield_qty']);
+                    // 1 mix run = 1x the recipe. base_yield_qty represents mixes per batch.
+                    $scaleFactor = max(1, $yieldQty) / max(1, (float)$recipe['base_yield_qty']);
                     $ingStmt = $pdo->prepare("SELECT ri.raw_material_id, ri.quantity_required, im.standard_cost, im.item_name FROM recipe_ingredients ri JOIN item_master im ON ri.raw_material_id = im.item_id WHERE ri.recipe_id = ?");
                     $ingStmt->execute([$recipe['recipe_id']]);
                     

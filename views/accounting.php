@@ -104,9 +104,16 @@ try {
                     <?php else: ?>
                         <?php foreach ($transactions as $trx): ?>
                             <tr>
-                                <td><span style="font-family:monospace; color:var(--text-secondary);">
+                                <td>
+                                    <span style="font-family:monospace; color:var(--text-secondary); font-size:0.8rem;">
                                         <?= htmlspecialchars($trx['transaction_id']) ?>
-                                    </span></td>
+                                    </span>
+                                    <?php if (!empty($trx['reference_id'])): ?>
+                                        <br><span style="font-size:0.8rem; color:var(--accent-primary); font-weight:500;">
+                                            <?= htmlspecialchars($trx['reference_id']) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <?= date('M d, Y', strtotime($trx['transaction_date'])) ?>
                                 </td>
