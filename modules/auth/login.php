@@ -78,6 +78,7 @@ function setUserSession(array $user, PDO $pdo): void
     $_SESSION['role_id'] = $user['role_id'];
     $_SESSION['role_name'] = $user['role_name'];
     $_SESSION['employee_name'] = $user['first_name'] . ' ' . $user['last_name'];
+    $_SESSION['user_email'] = $user['email'] ?? '';
 
     // Load permissions
     $stmt = $pdo->prepare(
@@ -287,8 +288,8 @@ function setUserSession(array $user, PDO $pdo): void
             <div class="login-card">
                 <div class="login-brand">
                     <div class="gem-icon"><i class="fa-solid fa-gem"></i></div>
-                    <h1>AURA</h1>
-                    <p>Stone Factory ERP System</p>
+                    <h1>MiskStone</h1>
+                    <p>مسك للحجر الصناعي والديكور</p>
                 </div>
 
                 <?php if ($error): ?>

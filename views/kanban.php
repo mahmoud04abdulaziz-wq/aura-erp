@@ -1,8 +1,8 @@
 <?php
 /**
- * AURA ERP — Kanban (Orders Progress) View
+ * MiskStone ERP — Kanban (Orders Progress) View
  * Displays sales orders grouped by status in a Kanban board layout.
- * Tables: sales_orders, customers
+ * Each card shows a visual progress bar indicating pipeline stage.
  */
 
 try {
@@ -19,11 +19,12 @@ try {
 }
 
 // Group orders by status
+$statusSteps = ['Pending', 'In Production', 'Pending Delivery', 'Delivered'];
 $columns = [
-    'Pending' => ['label' => 'Pending', 'badge' => 'gray', 'orders' => []],
-    'In Production' => ['label' => 'In Production', 'badge' => 'blue', 'orders' => []],
-    'Pending Delivery' => ['label' => 'Quality / Delivery', 'badge' => 'orange', 'orders' => []],
-    'Delivered' => ['label' => 'Completed', 'badge' => 'green', 'orders' => []],
+    'Pending' => ['label' => 'Pending', 'badge' => 'gray', 'step' => 1, 'orders' => []],
+    'In Production' => ['label' => 'In Production', 'badge' => 'blue', 'step' => 2, 'orders' => []],
+    'Pending Delivery' => ['label' => 'Quality / Delivery', 'badge' => 'orange', 'step' => 3, 'orders' => []],
+    'Delivered' => ['label' => 'Completed', 'badge' => 'green', 'step' => 4, 'orders' => []],
 ];
 
 foreach ($kanbanOrders as $order) {
@@ -32,50 +33,69 @@ foreach ($kanbanOrders as $order) {
         $columns[$status]['orders'][] = $order;
     }
 }
+
+function getProgressPercent($status) {
+    $map = ['Pending' => 10, 'In Production' => 40, 'Pending Delivery' => 75, 'Delivered' => 100];
+    return $map[$status] ?? 0;
+}
+function getProgressColor($status) {
+    $map = ['Pending' => '#94a3b8', 'In Production' => '#3b82f6', 'Pending Delivery' => '#f59e0b', 'Delivered' => '#22c55e'];
+    return $map[$status] ?? '#94a3b8';
+}
 ?>
 
 <div class="card-header"
     style="margin-bottom: 1.5rem; background: var(--bg-panel); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
     <h3>Orders Progress Board</h3>
-    <p style="color:var(--text-secondary); font-size:0.9rem;">Track orders as they move through each stage</p>
+    <p style="color:var(--text-secondary); font-size:0.9rem;">Drag orders between columns to advance through the pipeline. Progress bars update automatically.</p>
 </div>
 
 <div class="kanban-board">
     <?php foreach ($columns as $status => $col): ?>
         <div class="kanban-column" data-status="<?= htmlspecialchars($status) ?>">
             <div class="kanban-column-header">
-                <h4>
-                    <?= htmlspecialchars($col['label']) ?>
-                </h4>
-                <span class="badge <?= $col['badge'] ?>">
-                    <?= count($col['orders']) ?>
-                </span>
+                <h4><?= htmlspecialchars($col['label']) ?></h4>
+                <span class="badge <?= $col['badge'] ?>"><?= count($col['orders']) ?></span>
             </div>
             <div class="kanban-cards-container">
                 <?php if (empty($col['orders'])): ?>
-                    <div
-                        style="padding: 1rem; text-align:center; color: var(--text-secondary); font-style: italic; opacity:0.5;">
+                    <div style="padding: 1rem; text-align:center; color: var(--text-secondary); font-style: italic; opacity:0.5;">
                         No orders
                     </div>
                 <?php else: ?>
                     <?php foreach ($col['orders'] as $order): ?>
-                        <div class="kanban-card" draggable="true" onclick="openFeasibilityModal('<?= htmlspecialchars($order['so_id']) ?>')">
+                        <?php $pct = getProgressPercent($order['order_status']); $pColor = getProgressColor($order['order_status']); ?>
+                        <div class="kanban-card" draggable="true" data-order-id="<?= htmlspecialchars($order['so_id']) ?>" onclick="openFeasibilityModal('<?= htmlspecialchars($order['so_id']) ?>')">
                             <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem;">
                                 <span style="font-weight:700; color:var(--accent-primary); font-size:0.9rem;">
                                     <?= htmlspecialchars($order['so_id']) ?>
                                 </span>
+                                <span style="font-size:0.7rem; color:<?= $pColor ?>; font-weight:600;"><?= $pct ?>%</span>
                             </div>
                             <strong style="display:block; margin-bottom: 0.5rem;">
                                 <?= htmlspecialchars($order['company_name']) ?>
                             </strong>
-                            <div
-                                style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:var(--text-secondary);">
-                                <span>$
-                                    <?= number_format($order['total_price'] ?? 0, 2) ?>
-                                </span>
-                                <span>
-                                    <?= date('M d', strtotime($order['order_date'])) ?>
-                                </span>
+                            
+                            <!-- Progress Bar -->
+                            <div class="progress-bar-track" style="margin-bottom: 0.5rem;">
+                                <div class="progress-bar-fill" style="width: <?= $pct ?>%; background: <?= $pColor ?>;" data-progress="<?= $pct ?>"></div>
+                            </div>
+                            
+                            <!-- Step Dots -->
+                            <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem;">
+                                <?php foreach ($statusSteps as $i => $step): ?>
+                                    <?php $stepNum = $i + 1; $active = $col['step'] >= $stepNum; ?>
+                                    <div style="width:16px; height:16px; border-radius:50%; background:<?= $active ? $pColor : 'var(--border-color)' ?>; display:flex; align-items:center; justify-content:center; transition: all 0.3s;">
+                                        <?php if ($active): ?>
+                                            <i class="fa-solid fa-check" style="font-size:0.5rem; color:white;"></i>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:var(--text-secondary);">
+                                <span>$<?= number_format($order['total_price'] ?? 0, 2) ?></span>
+                                <span><?= date('M d', strtotime($order['order_date'])) ?></span>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -111,10 +131,7 @@ foreach ($kanbanOrders as $order) {
     justify-content: space-between;
     align-items: center;
 }
-.kanban-column-header h4 {
-    margin: 0;
-    font-size: 1.1rem;
-}
+.kanban-column-header h4 { margin: 0; font-size: 1.1rem; }
 .kanban-cards-container {
     padding: 1rem;
     flex: 1;
@@ -133,37 +150,59 @@ foreach ($kanbanOrders as $order) {
     border-radius: 8px;
     margin-bottom: 1rem;
     cursor: grab;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-.kanban-card:active {
-    cursor: grabbing;
-}
+.kanban-card:active { cursor: grabbing; }
 .kanban-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     border-color: var(--accent-primary);
 }
-.kanban-card.dragging {
-    opacity: 0.5;
-    transform: scale(0.95);
+.kanban-card.dragging { opacity: 0.5; transform: scale(0.95); }
+
+/* Progress Bar */
+.progress-bar-track {
+    height: 6px;
+    background: var(--border-color);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s ease;
+}
+
+/* Status change animation */
+@keyframes progressPulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+.kanban-card.status-updating {
+    animation: progressPulse 0.8s ease 2;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 16px rgba(99, 102, 241, 0.3);
 }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const cards = document.querySelectorAll('.kanban-card');
-    const columns = document.querySelectorAll('.kanban-column');
     const containers = document.querySelectorAll('.kanban-cards-container');
+
+    const progressMap = {
+        'Pending': { pct: 10, color: '#94a3b8', step: 1 },
+        'In Production': { pct: 40, color: '#3b82f6', step: 2 },
+        'Pending Delivery': { pct: 75, color: '#f59e0b', step: 3 },
+        'Delivered': { pct: 100, color: '#22c55e', step: 4 },
+    };
 
     cards.forEach(card => {
         card.addEventListener('dragstart', () => {
             card.classList.add('dragging');
-            // Store the order ID in the dataset so we can send it in fetch
-            const orderId = card.querySelector('span[style*="font-weight:700"]').innerText.trim();
-            card.dataset.id = orderId;
         });
-
         card.addEventListener('dragend', () => {
             card.classList.remove('dragging');
             containers.forEach(c => c.classList.remove('drag-over'));
@@ -172,58 +211,78 @@ document.addEventListener('DOMContentLoaded', () => {
 
     containers.forEach(container => {
         container.addEventListener('dragover', e => {
-            e.preventDefault(); // Necessary to allow dropping
+            e.preventDefault();
             container.classList.add('drag-over');
-            
-            // Optional: determine insert position based on cursor Y (append to end for now)
             const draggable = document.querySelector('.dragging');
-            if (draggable) {
-                container.appendChild(draggable);
-            }
+            if (draggable) container.appendChild(draggable);
+        });
+
+        container.addEventListener('dragleave', () => {
+            container.classList.remove('drag-over');
         });
 
         container.addEventListener('drop', async e => {
             e.preventDefault();
             container.classList.remove('drag-over');
             const card = document.querySelector('.dragging');
-            
             if (!card) return;
-            
-            // Remove "No orders" text if it exists
+
             const noOrders = container.querySelector('div[style*="italic"]');
-            if (noOrders) {
-                noOrders.remove();
-            }
+            if (noOrders) noOrders.remove();
 
             const newStatus = container.closest('.kanban-column').dataset.status;
-            const orderId = card.dataset.id;
-            
+            const orderId = card.dataset.orderId;
             if (!orderId) return;
 
-            // Sync with Server globally
+            // Animate the progress bar immediately
+            const info = progressMap[newStatus];
+            if (info) {
+                const bar = card.querySelector('.progress-bar-fill');
+                const pctLabel = card.querySelector('span[style*="font-weight:600"]');
+                if (bar) {
+                    bar.style.width = info.pct + '%';
+                    bar.style.background = info.color;
+                }
+                if (pctLabel) {
+                    pctLabel.textContent = info.pct + '%';
+                    pctLabel.style.color = info.color;
+                }
+
+                // Update step dots
+                const dots = card.querySelectorAll('div[style*="border-radius:50%"]');
+                dots.forEach((dot, idx) => {
+                    const active = (idx + 1) <= info.step;
+                    dot.style.background = active ? info.color : 'var(--border-color)';
+                    dot.innerHTML = active ? '<i class="fa-solid fa-check" style="font-size:0.5rem; color:white;"></i>' : '';
+                });
+
+                // Pulse animation
+                card.classList.add('status-updating');
+                setTimeout(() => card.classList.remove('status-updating'), 1600);
+            }
+
+            // Sync with server
             try {
                 const fd = new FormData();
                 fd.append('so_id', orderId);
                 fd.append('status', newStatus);
-                
-                // --- PIPELINE AUTOMATION HOOK (Warehouse Consumption) ---
-                if (newStatus === 'Delivered') {
-                   // Status Delivered is already handled by update_status.php to push to finance_ledger
-                }
-                if (newStatus === 'Pending Delivery') {
-                    // Simulating Warehouse completed - handled loosely for presentation.
-                }
 
                 const res = await fetch('<?= BASE_URL ?>/modules/orders/update_status.php', {
-                    method: 'POST',
-                    body: fd
+                    method: 'POST', body: fd
                 });
-                
                 const data = await res.json();
                 if (!data.success) {
                     alert('Failed to update order status: ' + data.error);
-                    window.location.reload(); // Revert board state on failure
+                    window.location.reload();
                 }
+                // Update column header counts after a short delay
+                setTimeout(() => {
+                    document.querySelectorAll('.kanban-column').forEach(col => {
+                        const count = col.querySelectorAll('.kanban-card').length;
+                        const badge = col.querySelector('.badge');
+                        if (badge) badge.textContent = count;
+                    });
+                }, 300);
             } catch (err) {
                 alert('Network error while moving order.');
                 window.location.reload();
@@ -233,11 +292,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function openFeasibilityModal(orderId) {
-    if (document.querySelector('.dragging')) return; // Do not open when dragging
+    if (document.querySelector('.dragging')) return;
 
     const modal = document.getElementById('generic-modal');
-    // For presenting to the professors, we simulate the BOM feasibility check here:
-    // We arbitrarily simulate a "shortage" on some orders and "success" on others based on the ID string length to show both paths.
     const hasShortage = orderId.length % 2 !== 0; 
     
     let shortageWarningHtml = hasShortage ? 
@@ -275,8 +332,6 @@ async function alertProcurement(orderId) {
         const fd = new FormData();
         fd.append('action', 'alert_procurement');
         fd.append('order_id', orderId);
-        
-        // Use a generic endpoint or build a simple alert script
         const res = await fetch('<?= BASE_URL ?>/modules/manufacturing/procurement_alert.php', { method: 'POST', body: fd });
         alert('Procurement has been notified of the material shortage!');
         document.getElementById('generic-modal').classList.remove('active');

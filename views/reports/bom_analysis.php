@@ -19,6 +19,23 @@ $totalBatchMaterialCost = 0.0;
 $isFeasible = true;
 $selectedRecipeName = "";
 $baseYield = 1.0;
+$reportSuccess = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'send_to_finance') {
+    $rId = (int)$_POST['recipe_id'];
+    $simQty = (float)$_POST['simulate_qty'];
+    $batchCost = (float)$_POST['batch_cost'];
+    $rName = trim($_POST['recipe_name']);
+    
+    // Insert a draft journal entry for Finance to review
+    $desc = "BOM Cost Estimate Report | Recipe: $rName | Qty: $simQty | Est. Total Cost: $" . number_format($batchCost, 2);
+    $pdo->prepare("INSERT INTO journal_entries (entry_date, source_module, description, reference_id, recorded_by) VALUES (CURRENT_DATE(), 'Production', ?, ?, ?)")
+        ->execute([$desc, 'EST-'.$rId, $_SESSION['user_id'] ?? 1]);
+        
+    require_once __DIR__ . '/../../includes/notifications.php';
+    addNotification($pdo, "BOM Estimate Received", "Production submitted a BOM cost estimate for $rName.", 'finance');
+    $reportSuccess = 'Cost estimation report successfully routed to the Finance module!';
+}
 
 if ($selectedRecipeId) {
     // Find recipe details
@@ -143,6 +160,25 @@ if ($selectedRecipeId) {
                     <div style="font-size:1.8rem; font-weight:700; color:#1e3a8a; margin-top:0.25rem;">$<?= number_format($totalBatchMaterialCost, 2) ?></div>
                 </div>
             </div>
+        </div>
+
+        <?php if ($reportSuccess): ?>
+            <div style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; padding:1rem; border-radius:8px; margin-bottom:1.5rem;">
+                <i class="fa-solid fa-check-circle" style="margin-right:0.5rem;"></i><?= htmlspecialchars($reportSuccess) ?>
+            </div>
+        <?php endif; ?>
+
+        <div style="display:flex; justify-content:flex-end; margin-bottom:1.5rem;">
+            <form method="POST">
+                <input type="hidden" name="action" value="send_to_finance">
+                <input type="hidden" name="recipe_id" value="<?= $selectedRecipeId ?>">
+                <input type="hidden" name="simulate_qty" value="<?= $simulateQty ?>">
+                <input type="hidden" name="batch_cost" value="<?= $totalBatchMaterialCost ?>">
+                <input type="hidden" name="recipe_name" value="<?= htmlspecialchars($selectedRecipeName) ?>">
+                <button type="submit" style="padding:0.6rem 1.25rem; background:var(--accent-primary); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:0.5rem;">
+                    <i class="fa-solid fa-paper-plane"></i> Send Estimate to Finance
+                </button>
+            </form>
         </div>
 
         <!-- BOM Hierarchical Table -->
