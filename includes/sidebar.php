@@ -1,6 +1,6 @@
 <?php
 /**
- * AURA ERP — Sidebar
+ * MiskStone ERP — Sidebar
  * Dynamic sidebar that only shows nav items the user has permission to access.
  */
 
@@ -18,7 +18,8 @@ $navModules = [
     'hr' => ['fa-solid fa-users', 'HR', 'hr'],
     'accounting' => ['fa-solid fa-file-invoice-dollar', 'Accounting', 'finance'],
     'invoices' => ['fa-solid fa-file-invoice', 'Invoices', 'finance'],
-    'analytics' => ['fa-solid fa-chart-pie', 'Analytics', 'dashboard'],
+    'bi' => ['fa-solid fa-brain', 'Business Intelligence', 'dashboard'],
+    'analytics' => ['fa-solid fa-calculator', 'Math Models', 'dashboard'],
     'reports' => ['fa-solid fa-print', 'Reports', 'dashboard'],
     'admin' => ['fa-solid fa-user-shield', 'User Accounts', 'admin'],
 ];
@@ -27,7 +28,7 @@ $navModules = [
     <div class="sidebar-header">
         <div class="brand">
             <i class="fa-solid fa-gem mobile-icon"></i>
-            <span class="brand-text">AURA</span>
+            <span class="brand-text">MiskStone</span>
         </div>
         <button id="sidebar-close" class="mobile-only"><i class="fa-solid fa-times"></i></button>
     </div>

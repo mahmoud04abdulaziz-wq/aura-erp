@@ -27,6 +27,9 @@ $roles = [
     [3, 'Sales Engineer', 'Handles CRM, orders, and quotations'],
     [4, 'Procurement Officer', 'Manages suppliers and purchase orders'],
     [5, 'HR Manager', 'Human Resources administration'],
+    [6, 'Inventory Manager', 'Warehouse control, safety stock, and material registration'],
+    [7, 'IT Administrator', 'System maintenance, user provisioning, and security'],
+    [8, 'Finance Manager', 'General ledger, payroll, and financial compliance'],
 ];
 $stmt = $pdo->prepare("INSERT IGNORE INTO roles (role_id, role_name, description) VALUES (?, ?, ?)");
 foreach ($roles as $r) $stmt->execute($r);
@@ -39,6 +42,8 @@ $departments = [
     [3, 'Sales & Marketing'],
     [4, 'Procurement & Logistics'],
     [5, 'Finance'],
+    [6, 'Information Technology'],
+    [7, 'Warehouse & Inventory'],
 ];
 $stmt = $pdo->prepare("INSERT IGNORE INTO departments (department_id, department_name) VALUES (?, ?)");
 foreach ($departments as $d) $stmt->execute($d);
@@ -67,20 +72,27 @@ echo "  ✓ Permissions seeded" . PHP_EOL;
 $rolePerms = [
     // Executive Board → ALL
     [1,1],[1,2],[1,3],[1,4],[1,5],[1,6],[1,7],[1,8],
-    // Production Manager → dashboard, manufacturing, inventory
+    // Production Manager → dashboard, manufacturing, inventory (read)
     [2,1],[2,4],[2,5],
-    // Sales Engineer → dashboard, crm, inventory
-    [3,1],[3,8],[3,5],
+    // Sales Engineer → dashboard, crm, inventory (read), finance (limited via code)
+    [3,1],[3,8],[3,5],[3,7],
     // Procurement Officer → dashboard, procurement, inventory
     [4,1],[4,6],[4,5],
     // HR Manager → dashboard, hr
     [5,1],[5,3],
+    // Inventory Manager → dashboard, inventory
+    [6,1],[6,5],
+    // IT Administrator → dashboard, auth, admin
+    [7,1],[7,2],
+    // Finance Manager → dashboard, finance
+    [8,1],[8,7],
 ];
 $stmt = $pdo->prepare("INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)");
 foreach ($rolePerms as $rp) $stmt->execute($rp);
-// Admin permission for Executive Board
+// Admin permission for Executive Board and IT Administrator
 if ($adminPermId) {
     $pdo->exec("INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (1, $adminPermId)");
+    $pdo->exec("INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (7, $adminPermId)");
 }
 echo "  ✓ Role-Permissions mapped" . PHP_EOL;
 
@@ -110,6 +122,9 @@ $employees = [
     [10, 4, 4, 'Sara', 'Younis', 'sara.y@company.com', 'Pending', '2026-04-01', 0.00, 320.00, 16.00],
     [11, 1, 1, 'Ahmad', 'Barakat', 'ahmad.b@company.com', 'Approved', '2021-11-05', 0.87, 500.00, 25.00],
     [12, 2, 2, 'Mazen', 'Tawfiq', 'mazen.t@company.com', 'Approved', '2024-06-15', 0.82, 350.00, 18.00],
+    [13, 7, 6, 'Tariq', 'Mansour', 'tariq.m@company.com', 'Approved', '2022-06-01', 0.89, 400.00, 20.00],
+    [14, 6, 7, 'Yazan', 'Othman', 'yazan.it@company.com', 'Approved', '2021-09-15', 0.93, 450.00, 22.00],
+    [15, 5, 8, 'Nour', 'Sabbagh', 'nour.fin@company.com', 'Approved', '2022-04-10', 0.90, 430.00, 21.00],
 ];
 
 $stmt = $pdo->prepare("INSERT IGNORE INTO employees 
@@ -126,13 +141,16 @@ echo PHP_EOL . "--- User Accounts ---" . PHP_EOL;
 $defaultHash = password_hash('Admin@123', PASSWORD_BCRYPT);
 
 $users = [
-    [1, 1, 1, 'salem.h@company.com'],      // Executive Board
+    [1, 1, 1, 'salem.h@company.com'],      // Executive Board (CEO)
     [2, 2, 1, 'tayseer.k@company.com'],     // Executive Board
     [3, 3, 2, 'omar.a@company.com'],        // Production Manager
     [4, 4, 3, 'lina.d@company.com'],        // Sales Engineer
     [5, 5, 4, 'khaled.n@company.com'],      // Procurement Officer
     [6, 8, 5, 'huda.hr@company.com'],       // HR Manager
     [7, 11, 1, 'ahmad.b@company.com'],      // Executive Board
+    [8, 13, 6, 'tariq.m@company.com'],      // Inventory Manager
+    [9, 14, 7, 'yazan.it@company.com'],     // IT Administrator
+    [10, 15, 8, 'nour.fin@company.com'],    // Finance Manager
 ];
 
 $stmt = $pdo->prepare("INSERT IGNORE INTO users (user_id, employee_id, role_id, email, password_hash) VALUES (?, ?, ?, ?, ?)");

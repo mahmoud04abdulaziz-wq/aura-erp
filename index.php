@@ -1,6 +1,7 @@
 <?php
 /**
- * AURA ERP — Public Storefront
+ * MiskStone ERP — Public Storefront
+ * مسك للحجر الصناعي والديكور
  * Public-facing site for customers to view products and request quotes.
  */
 require_once __DIR__ . '/config/app.php';
@@ -9,7 +10,7 @@ require_once __DIR__ . '/config/db_connect.php';
 $successMsg = '';
 $errorMsg = '';
 
-// Handle Quote Request Form Submission (Option A: Insert direct as New Lead)
+// Handle Quote Request Form Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'request_quote') {
     $companyName = trim($_POST['company_name'] ?? '');
     $contactPerson = trim($_POST['contact_person'] ?? '');
@@ -17,26 +18,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $phone = trim($_POST['phone'] ?? '');
     $productInt = trim($_POST['product_interest'] ?? '');
     $message = trim($_POST['message'] ?? '');
+    $paymentMethod = trim($_POST['payment_method'] ?? 'Not specified');
 
     if (empty($companyName) || empty($contactPerson) || empty($email)) {
         $errorMsg = 'Please fill out all required fields.';
     } else {
         try {
-            // Generate a unique Customer ID (e.g., WEB-TIMESTAMP)
-            $customerId = 'WEB-' . time();
-            
-            // We append the product interest to the message/default address field or just leave it for Sales to see
-            // Since there is no "notes" field in customers in seed_all, we'll prefix it to the default_address or just skip.
-            // Actually, wait, let's just insert basic lead info into `customers`.
-            // Columns: customer_id, company_name, contact_person, phone_number, email, lead_status, default_address
-            $addressNotes = "Inquiry about: " . $productInt . " - Note: " . $message;
+            $addressNotes = "Product: " . $productInt . " | Payment: " . $paymentMethod . " | Note: " . $message;
 
             $stmt = $pdo->prepare("INSERT INTO customers 
-                (customer_id, company_name, contact_person, phone_number, email, lead_status, default_address) 
-                VALUES (?, ?, ?, ?, ?, 'New', ?)");
+                (company_name, contact_person, phone_number, email, lead_status, default_address) 
+                VALUES (?, ?, ?, ?, 'New', ?)");
                 
             $stmt->execute([
-                $customerId,
                 $companyName,
                 $contactPerson,
                 $phone,
@@ -52,14 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Fetch Finished Goods from Item Master
+// Fetch Finished Goods
 try {
     $stmt = $pdo->query("SELECT item_name, category, stone_measurement 
                          FROM inventory_finished_goods 
                          ORDER BY item_name ASC");
     $products = $stmt->fetchAll();
 } catch (PDOException $e) {
-    // Fallback if inventory_finished_goods fails
     try {
         $stmt = $pdo->query("SELECT item_name, category, 'Standard Size' as stone_measurement 
                              FROM item_master 
@@ -76,7 +69,8 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AURA | Premium Stone & Marble</title>
+    <title>MiskStone | مسك للحجر الصناعي والديكور</title>
+    <meta name="description" content="MiskStone — Premium artificial stone, marble, and decorative panels manufactured in Jordan. Request a quote today for your construction or interior design project.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -89,11 +83,12 @@ try {
     <nav class="store-nav">
         <a href="#" class="store-brand">
             <i class="fa-solid fa-gem"></i>
-            AURA
+            MiskStone
         </a>
         <div class="nav-links">
-            <a href="#products">Our Products</a>
             <a href="#about">About Us</a>
+            <a href="#products">Products</a>
+            <a href="#process">Our Process</a>
             <a href="<?= BASE_URL ?>/modules/auth/login.php" class="btn-login-header">
                 <i class="fa-solid fa-lock" style="margin-right: 6px;"></i> Employee Login
             </a>
@@ -103,11 +98,68 @@ try {
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
-            <h1>Crafting Excellence in Stone & Marble</h1>
-            <p>Direct from our factory to your project. Premium artificial marble, granite, and decorative stone specifically engineered for durability and aesthetic perfection.</p>
-            <button class="btn-login-header" onclick="document.getElementById('products').scrollIntoView({behavior: 'smooth'})" style="padding: 1rem 2rem; font-size: 1.1rem;">
-                Explore Catalog
-            </button>
+            <p style="font-size: 1.1rem; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 1rem; opacity: 0.8;">مسك للحجر الصناعي والديكور</p>
+            <h1>Premium Artificial Stone<br>& Decorative Solutions</h1>
+            <p>Engineered in Jordan. Built to last. MiskStone manufactures high-quality artificial marble, granite, and decorative panels using advanced vibro-compression and curing technologies for construction, interior design, and commercial projects across the Middle East.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button class="btn-login-header" onclick="document.getElementById('products').scrollIntoView({behavior: 'smooth'})" style="padding: 1rem 2rem; font-size: 1.1rem;">
+                    <i class="fa-solid fa-cube" style="margin-right: 8px;"></i> Explore Catalog
+                </button>
+                <button class="btn-login-header" onclick="document.getElementById('about').scrollIntoView({behavior: 'smooth'})" style="padding: 1rem 2rem; font-size: 1.1rem; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);">
+                    Learn More
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" style="padding: 5rem 2rem; max-width: 1200px; margin: auto;">
+        <h2 class="section-title">About MiskStone</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2.5rem; margin-top: 2rem;">
+            <div style="padding: 2rem; border-radius: 16px; background: linear-gradient(135deg, #f8fafc, #e2e8f0); border: 1px solid #e2e8f0;">
+                <i class="fa-solid fa-industry" style="font-size: 2.5rem; color: #6366f1; margin-bottom: 1rem;"></i>
+                <h3 style="margin-bottom: 0.75rem;">Advanced Manufacturing</h3>
+                <p style="color: #475569; line-height: 1.7;">Our factory employs vibro-compression technology and controlled curing environments to produce artificial stone that rivals natural marble and granite in durability and aesthetics, at a fraction of the cost.</p>
+            </div>
+            <div style="padding: 2rem; border-radius: 16px; background: linear-gradient(135deg, #f8fafc, #e2e8f0); border: 1px solid #e2e8f0;">
+                <i class="fa-solid fa-flask" style="font-size: 2.5rem; color: #6366f1; margin-bottom: 1rem;"></i>
+                <h3 style="margin-bottom: 0.75rem;">Engineered Formulas</h3>
+                <p style="color: #475569; line-height: 1.7;">Each product line uses a proprietary mix of white/grey cement, quartz aggregates, marble chips, iron oxide pigments, and polyester resin — precisely calibrated for color consistency, structural integrity, and weather resistance.</p>
+            </div>
+            <div style="padding: 2rem; border-radius: 16px; background: linear-gradient(135deg, #f8fafc, #e2e8f0); border: 1px solid #e2e8f0;">
+                <i class="fa-solid fa-earth-americas" style="font-size: 2.5rem; color: #6366f1; margin-bottom: 1rem;"></i>
+                <h3 style="margin-bottom: 0.75rem;">Regional Leader</h3>
+                <p style="color: #475569; line-height: 1.7;">Based in Jordan, MiskStone serves clients across the Middle East — from residential villas in Amman to large-scale commercial developments in the Gulf. We combine local craftsmanship with international quality standards.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Manufacturing Process -->
+    <section id="process" style="padding: 4rem 2rem; background: #f1f5f9;">
+        <div style="max-width: 1200px; margin: auto;">
+            <h2 class="section-title">Our Manufacturing Process</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+                <div style="text-align: center; padding: 2rem 1rem;">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; margin: 0 auto 1rem;">1</div>
+                    <h4>Raw Material Mixing</h4>
+                    <p style="font-size: 0.9rem; color: #64748b;">Cement, aggregates, and pigments are measured to recipe specifications and mixed uniformly.</p>
+                </div>
+                <div style="text-align: center; padding: 2rem 1rem;">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; margin: 0 auto 1rem;">2</div>
+                    <h4>Vibro-Compression</h4>
+                    <p style="font-size: 0.9rem; color: #64748b;">The mixture is poured into molds and subjected to vibration + hydraulic pressure to remove air pockets.</p>
+                </div>
+                <div style="text-align: center; padding: 2rem 1rem;">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; margin: 0 auto 1rem;">3</div>
+                    <h4>Controlled Curing</h4>
+                    <p style="font-size: 0.9rem; color: #64748b;">Slabs cure for 18–36 hours in temperature-controlled chambers for maximum hardness.</p>
+                </div>
+                <div style="text-align: center; padding: 2rem 1rem;">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; margin: 0 auto 1rem;">4</div>
+                    <h4>QA & Finishing</h4>
+                    <p style="font-size: 0.9rem; color: #64748b;">Each piece undergoes quality inspection, polishing, and edge finishing before packaging.</p>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -125,18 +177,19 @@ try {
             </div>
         <?php endif; ?>
 
-        <h2 class="section-title">Featured Products</h2>
+        <h2 class="section-title">Our Product Catalog</h2>
         
         <div class="grid">
             <?php foreach ($products as $prod): ?>
                 <?php
-                    // Assign icon based on keyword
-                    $icon = 'fa-layer-group'; // default
+                    $icon = 'fa-layer-group';
                     $nameLower = strtolower($prod['item_name']);
                     if (strpos($nameLower, 'marble') !== false) $icon = 'fa-chess-board';
                     if (strpos($nameLower, 'granite') !== false) $icon = 'fa-cubes';
                     if (strpos($nameLower, 'decorative') !== false) $icon = 'fa-leaf';
                     if (strpos($nameLower, 'countertop') !== false) $icon = 'fa-kitchen-set';
+                    if (strpos($nameLower, 'vanity') !== false) $icon = 'fa-sink';
+                    if (strpos($nameLower, 'cladding') !== false) $icon = 'fa-border-all';
                 ?>
                 <div class="product-card">
                     <div class="product-icon">
@@ -161,6 +214,18 @@ try {
             <?php endif; ?>
         </div>
     </section>
+
+    <!-- Footer -->
+    <footer style="background: #0f172a; color: #94a3b8; padding: 3rem 2rem; text-align: center;">
+        <div style="max-width: 1200px; margin: auto;">
+            <div style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 0.5rem;">
+                <i class="fa-solid fa-gem" style="margin-right: 8px; color: #6366f1;"></i> MiskStone
+            </div>
+            <p style="margin-bottom: 0.5rem;">مسك للحجر الصناعي والديكور</p>
+            <p style="font-size: 0.85rem;">Jordan · Middle East · International Shipping Available</p>
+            <p style="font-size: 0.8rem; margin-top: 1.5rem; opacity: 0.6;">&copy; <?= date('Y') ?> MiskStone. Powered by AURA ERP.</p>
+        </div>
+    </footer>
 
     <!-- Quote Modal -->
     <div id="quoteModal" class="modal-overlay">
@@ -198,8 +263,18 @@ try {
                 </div>
 
                 <div class="form-group">
+                    <label>Preferred Payment Method</label>
+                    <select name="payment_method" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; background: white; color: #0f172a;">
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Cash on Delivery">Cash on Delivery</option>
+                        <option value="Letter of Credit (L/C)">Letter of Credit (L/C)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label>Project Details / Quantity Required</label>
-                    <textarea name="message" rows="3" placeholder="Tell us about your project..."></textarea>
+                    <textarea name="message" rows="3" placeholder="Tell us about your project, required quantities, and delivery timeline..."></textarea>
                 </div>
 
                 <button type="submit" class="btn-submit">Submit Inquiry</button>
@@ -218,7 +293,6 @@ try {
             document.getElementById('quoteModal').style.display = 'none';
         }
 
-        // Close on clicking outside
         document.getElementById('quoteModal').addEventListener('click', function(e) {
             if(e.target === this) {
                 closeQuoteModal();

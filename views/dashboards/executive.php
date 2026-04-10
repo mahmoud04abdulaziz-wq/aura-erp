@@ -16,7 +16,7 @@ $transactions = $pdo->query("
 <div class="dashboard-container">
     <div class="welcome-banner" style="background: linear-gradient(135deg, #0f172a, #334155); color: white;">
         <h1>Executive Dashboard</h1>
-        <p>AURA Factory Financial Overview & Status</p>
+        <p>MiskStone Factory Financial Overview & Status</p>
     </div>
 
     <!-- Stats Grid -->
