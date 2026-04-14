@@ -48,13 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 // Fetch Finished Goods
 try {
-    $stmt = $pdo->query("SELECT item_name, category, stone_measurement 
+    $stmt = $pdo->query("SELECT item_id, item_name, category, stone_measurement 
                          FROM inventory_finished_goods 
                          ORDER BY item_name ASC");
     $products = $stmt->fetchAll();
 } catch (PDOException $e) {
     try {
-        $stmt = $pdo->query("SELECT item_name, category, 'Standard Size' as stone_measurement 
+        $stmt = $pdo->query("SELECT item_id, item_name, category, 'Standard Size' as stone_measurement 
                              FROM item_master 
                              WHERE category != 'Raw Material'
                              ORDER BY item_name ASC");
@@ -81,14 +81,24 @@ try {
 
     <!-- Navigation -->
     <nav class="store-nav">
-        <a href="#" class="store-brand">
+        <a href="<?= BASE_URL ?>/" class="store-brand">
             <i class="fa-solid fa-gem"></i>
             MiskStone
         </a>
         <div class="nav-links">
             <a href="#about">About Us</a>
-            <a href="#products">Products</a>
+            <a href="<?= BASE_URL ?>/shop.php">Shop</a>
             <a href="#process">Our Process</a>
+            <?php
+                $hCartCount = 0;
+                if (!empty($_SESSION['cart'])) { foreach ($_SESSION['cart'] as $hci) $hCartCount += $hci['qty']; }
+            ?>
+            <a href="<?= BASE_URL ?>/cart.php" class="cart-link">
+                <i class="fa-solid fa-bag-shopping"></i> Cart
+                <?php if ($hCartCount > 0): ?>
+                    <span class="cart-badge"><?= $hCartCount ?></span>
+                <?php endif; ?>
+            </a>
             <a href="<?= BASE_URL ?>/modules/auth/login.php" class="btn-login-header">
                 <i class="fa-solid fa-lock" style="margin-right: 6px;"></i> Employee Login
             </a>
@@ -102,9 +112,9 @@ try {
             <h1>Premium Artificial Stone<br>& Decorative Solutions</h1>
             <p>Engineered in Jordan. Built to last. MiskStone manufactures high-quality artificial marble, granite, and decorative panels using advanced vibro-compression and curing technologies for construction, interior design, and commercial projects across the Middle East.</p>
             <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                <button class="btn-login-header" onclick="document.getElementById('products').scrollIntoView({behavior: 'smooth'})" style="padding: 1rem 2rem; font-size: 1.1rem;">
+                <a href="<?= BASE_URL ?>/shop.php" class="btn-login-header" style="padding: 1rem 2rem; font-size: 1.1rem; text-decoration: none;">
                     <i class="fa-solid fa-cube" style="margin-right: 8px;"></i> Explore Catalog
-                </button>
+                </a>
                 <button class="btn-login-header" onclick="document.getElementById('about').scrollIntoView({behavior: 'smooth'})" style="padding: 1rem 2rem; font-size: 1.1rem; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);">
                     Learn More
                 </button>
@@ -200,9 +210,9 @@ try {
                     <p class="product-desc">
                         <?= htmlspecialchars($prod['stone_measurement'] ?? 'Standard Factory Size') ?>
                     </p>
-                    <button class="btn-quote" onclick="openQuoteModal('<?= htmlspecialchars(addslashes($prod['item_name'])) ?>')">
-                        Request Quote
-                    </button>
+                    <a href="<?= BASE_URL ?>/product-single.php?id=<?= urlencode($prod['item_id']) ?>" class="btn-quote" style="text-decoration:none; display:inline-block; text-align:center;">
+                        View Details
+                    </a>
                 </div>
             <?php endforeach; ?>
             
@@ -212,6 +222,12 @@ try {
                     <p>No catalog items found. Contact sales for availability.</p>
                 </div>
             <?php endif; ?>
+        </div>
+        
+        <div style="text-align: center; margin-top: 3.5rem;">
+            <a href="<?= BASE_URL ?>/shop.php" class="btn-login-header" style="padding: 1rem 3rem; text-decoration: none; font-size: 1.1rem; display: inline-block;">
+                <i class="fa-solid fa-layer-group" style="margin-right: 8px;"></i> View All Products
+            </a>
         </div>
     </section>
 
