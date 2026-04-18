@@ -134,6 +134,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $costStr = number_format($totalBomCost, 2);
             addNotification($pdo, "✅ Batch Completed", "{$batchLabel}: {$yieldQty} units produced. BOM cost: \${$costStr}", 'manufacturing');
             addNotification($pdo, "📦 Inventory Updated", "FG +{$yieldQty}. Raw materials consumed per recipe for {$batchLabel}.", 'inventory');
+            
+            // 6. UPDATE LINKED SALES ORDER
+            if (!empty($batch['so_id'])) {
+                $pdo->prepare("UPDATE sales_orders SET order_status = 'Completed' WHERE so_id = ?")
+                    ->execute([$batch['so_id']]);
+                addNotification($pdo, "📦 Order Ready", "Production for Sales Order {$batch['so_id']} is finished. Ready for delivery.", 'sales');
+            }
         }
 
         echo json_encode(['success' => true]);

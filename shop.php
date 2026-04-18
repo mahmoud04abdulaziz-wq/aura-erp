@@ -64,7 +64,7 @@ function getStoneIcon($name) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/store.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/store.css?v=2.0">
 </head>
 <body>
 
@@ -141,6 +141,8 @@ function getStoneIcon($name) {
                             <i class="fa-solid <?= $icon ?> card-icon"></i>
                             <?php if ($inStock > 0): ?>
                                 <span class="card-badge"><i class="fa-solid fa-check" style="margin-right: 3px;"></i> In Stock</span>
+                            <?php else: ?>
+                                <span class="card-badge" style="background: rgba(220, 38, 38, 0.1); color: #dc2626;"><i class="fa-solid fa-xmark" style="margin-right: 3px;"></i> Out of Stock</span>
                             <?php endif; ?>
                         </div>
                         <div class="shop-card-body">

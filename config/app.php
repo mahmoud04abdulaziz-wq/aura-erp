@@ -5,7 +5,7 @@
 
 define('APP_NAME', 'AURA Stone ERP');
 define('APP_ROOT', dirname(__DIR__));
-define('BASE_URL', '/grad-project-prototype');
+define('BASE_URL', '/grad-project');
 
 // Session config
 ini_set('session.cookie_httponly', 1);

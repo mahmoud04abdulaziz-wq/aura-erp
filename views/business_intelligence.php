@@ -25,7 +25,7 @@ try {
         SELECT c.company_name, SUM(so.total_price) as total_revenue, COUNT(so.so_id) as order_count
         FROM sales_orders so
         JOIN customers c ON so.customer_id = c.customer_id
-        WHERE so.order_status IN ('Delivered', 'Pending Delivery', 'In Production')
+        WHERE so.order_status IN ('Delivered', 'Completed', 'In Production')
         GROUP BY c.customer_id, c.company_name
         ORDER BY total_revenue DESC
         LIMIT 5

@@ -34,7 +34,7 @@ try {
 $badgeMap = [
     'Pending' => 'pending',
     'In Production' => 'blue',
-    'Pending Delivery' => 'orange',
+    'Completed' => 'orange',
     'Delivered' => 'completed',
 ];
 ?>
@@ -163,9 +163,15 @@ $badgeMap = [
                                         <i class="fa-solid fa-ellipsis-vertical"></i>
                                     </button>
                                     <div class="dropdown-menu">
-                                        <button class="dropdown-item" onclick="openChangeStatusModal('<?= htmlspecialchars($order['so_id']) ?>', '<?= htmlspecialchars($order['order_status']) ?>')">
-                                            <i class="fa-solid fa-arrows-rotate"></i> Change Status
-                                        </button>
+                                        <?php if ($order['order_status'] === 'Pending'): ?>
+                                            <button class="dropdown-item" onclick="changeOrderStatus('<?= htmlspecialchars($order['so_id']) ?>', 'In Production')">
+                                                <i class="fa-solid fa-industry"></i> Send to Production
+                                            </button>
+                                        <?php elseif ($order['order_status'] === 'Completed'): ?>
+                                            <button class="dropdown-item" onclick="changeOrderStatus('<?= htmlspecialchars($order['so_id']) ?>', 'Delivered')">
+                                                <i class="fa-solid fa-truck-fast"></i> Deliver Order
+                                            </button>
+                                        <?php endif; ?>
                                         <button class="dropdown-item delete" onclick="deleteOrder('<?= htmlspecialchars($order['so_id']) ?>')">
                                             <i class="fa-regular fa-trash-can"></i> Delete
                                         </button>
@@ -409,80 +415,13 @@ $badgeMap = [
         }
     }
 
-    function openChangeStatusModal(so_id, currentStatus) {
-        const modal = document.getElementById('generic-modal');
-        const statuses = ['Pending', 'In Production', 'Pending Delivery', 'Delivered'];
-        
-        let optionsHtml = statuses.map(s => 
-            `<div class="custom-option ${s === currentStatus ? 'selected' : ''}" data-value="${s}">${s}</div>`
-        ).join('');
-
-        const content = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-                <h2 style="margin:0;">Update Status: ${so_id}</h2>
-                <button type="button" onclick="document.getElementById('generic-modal').classList.remove('active')" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-primary);">&times;</button>
-            </div>
-            <form onsubmit="submitChangeStatus(event, '${so_id}')" id="change-status-form">
-                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">New Status</label>
-                
-                <div class="custom-select-wrapper" id="status-select" style="margin-bottom:1.5rem;" tabindex="0">
-                    <div class="custom-select">
-                        <div class="custom-select-trigger">
-                            <span class="selected-text">${currentStatus}</span>
-                            <i class="fa-solid fa-chevron-down"></i>
-                        </div>
-                    </div>
-                    <div class="custom-options">
-                        ${optionsHtml}
-                    </div>
-                    <input type="hidden" name="status" id="val_status" value="${currentStatus}" required>
-                </div>
-                
-                <button type="submit" style="padding:0.75rem; background:var(--accent-primary); color:white; border:none; border-radius:8px; width:100%; cursor:pointer; font-weight:500; font-size:1rem; box-shadow:0 4px 12px rgba(99,102,241,0.3); transition:all 0.2s;">Save Status</button>
-            </form>
-        `;
-        
-        modal.innerHTML = `<div class="modal-content" style="background:var(--bg-panel); padding:2.5rem; border-radius:16px; max-width:450px; margin:auto; box-shadow:var(--shadow-lg);">${content}</div>`;
-        modal.classList.add('active');
-
-        setTimeout(() => {
-            const wrapper = modal.querySelector('.custom-select-wrapper');
-            const select = wrapper.querySelector('.custom-select');
-            const options = wrapper.querySelectorAll('.custom-option');
-            const hiddenInput = wrapper.querySelector('input[type="hidden"]');
-            const textSpan = wrapper.querySelector('.selected-text');
-            
-            select.addEventListener('click', (e) => {
-                e.stopPropagation();
-                wrapper.classList.toggle('open');
-            });
-            
-            options.forEach(opt => {
-                opt.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    hiddenInput.value = opt.dataset.value;
-                    textSpan.textContent = opt.textContent;
-                    options.forEach(o => o.classList.remove('selected'));
-                    opt.classList.add('selected');
-                    wrapper.classList.remove('open');
-                });
-            });
-            
-            const docClickListener = () => wrapper.classList.remove('open');
-            document.addEventListener('click', docClickListener);
-            
-            const closeBtn = modal.querySelector('button[type="button"]');
-            closeBtn.addEventListener('click', () => document.removeEventListener('click', docClickListener));
-            document.getElementById('change-status-form').addEventListener('submit', () => document.removeEventListener('click', docClickListener));
-        }, 50);
-    }
-
-    async function submitChangeStatus(e, so_id) {
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        fd.append('so_id', so_id);
+    async function changeOrderStatus(so_id, newStatus) {
+        if (!confirm(`Are you sure you want to mark order ${so_id} as ${newStatus}?`)) return;
         
         try {
+            const fd = new FormData();
+            fd.append('so_id', so_id);
+            fd.append('status', newStatus);
             const res = await fetch('<?= BASE_URL ?>/modules/orders/update_status.php', { method: 'POST', body: fd });
             const data = await res.json();
             if (data.success) {

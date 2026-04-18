@@ -19,12 +19,12 @@ try {
 }
 
 // Group orders by status
-$statusSteps = ['Pending', 'In Production', 'Pending Delivery', 'Delivered'];
+$statusSteps = ['Pending', 'In Production', 'Completed', 'Delivered'];
 $columns = [
     'Pending' => ['label' => 'Pending', 'badge' => 'gray', 'step' => 1, 'orders' => []],
     'In Production' => ['label' => 'In Production', 'badge' => 'blue', 'step' => 2, 'orders' => []],
-    'Pending Delivery' => ['label' => 'Quality / Delivery', 'badge' => 'orange', 'step' => 3, 'orders' => []],
-    'Delivered' => ['label' => 'Completed', 'badge' => 'green', 'step' => 4, 'orders' => []],
+    'Completed' => ['label' => 'Completed', 'badge' => 'orange', 'step' => 3, 'orders' => []],
+    'Delivered' => ['label' => 'Delivered', 'badge' => 'green', 'step' => 4, 'orders' => []],
 ];
 
 foreach ($kanbanOrders as $order) {
@@ -35,11 +35,11 @@ foreach ($kanbanOrders as $order) {
 }
 
 function getProgressPercent($status) {
-    $map = ['Pending' => 10, 'In Production' => 40, 'Pending Delivery' => 75, 'Delivered' => 100];
+    $map = ['Pending' => 10, 'In Production' => 40, 'Completed' => 75, 'Delivered' => 100];
     return $map[$status] ?? 0;
 }
 function getProgressColor($status) {
-    $map = ['Pending' => '#94a3b8', 'In Production' => '#3b82f6', 'Pending Delivery' => '#f59e0b', 'Delivered' => '#22c55e'];
+    $map = ['Pending' => '#94a3b8', 'In Production' => '#3b82f6', 'Completed' => '#f59e0b', 'Delivered' => '#22c55e'];
     return $map[$status] ?? '#94a3b8';
 }
 ?>
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressMap = {
         'Pending': { pct: 10, color: '#94a3b8', step: 1 },
         'In Production': { pct: 40, color: '#3b82f6', step: 2 },
-        'Pending Delivery': { pct: 75, color: '#f59e0b', step: 3 },
+        'Completed': { pct: 75, color: '#f59e0b', step: 3 },
         'Delivered': { pct: 100, color: '#22c55e', step: 4 },
     };
 

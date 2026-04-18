@@ -12,23 +12,28 @@ try {
     $totalSpend = $pdo->query("SELECT COALESCE(SUM(total_amount), 0) FROM purchase_orders WHERE payment_status = 'Paid'")->fetchColumn();
     $supplierCount = $pdo->query("SELECT COUNT(*) FROM suppliers")->fetchColumn();
 
-    // Purchase Orders list
+    // Purchase Orders list with item info
     $purchaseOrders = $pdo->query(
         "SELECT po.po_id, po.order_date, po.total_amount, po.currency, po.order_status,
-                po.payment_status, po.delivery_location,
-                s.supplier_name
+                po.payment_status, po.delivery_location, po.requested_quantity,
+                s.supplier_name, im.item_name
          FROM purchase_orders po
          JOIN suppliers s ON po.supplier_id = s.supplier_id
+         LEFT JOIN item_master im ON po.item_id = im.item_id
          ORDER BY po.order_date DESC"
     )->fetchAll();
 
     // Suppliers for the modal dropdown
     $suppliers = $pdo->query("SELECT supplier_id, supplier_name, preferred_currency FROM suppliers ORDER BY supplier_name")->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Raw Materials for PO creation
+    $rawMaterials = $pdo->query("SELECT item_id, item_name, standard_cost FROM item_master WHERE category = 'Raw Material' ORDER BY item_name")->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (Exception $e) {
     error_log("Procurement view error: " . $e->getMessage());
     $purchaseOrders = [];
     $suppliers = [];
+    $rawMaterials = [];
     $totalPOs = $pendingPOs = $supplierCount = 0;
     $totalSpend = 0;
 }
@@ -110,7 +115,7 @@ try {
                     <?php foreach ($purchaseOrders as $po): ?>
                         <?php
                         $orderStatusClass = match ($po['order_status']) {
-                            'Received' => 'completed',
+                            'Completed' => 'completed',
                             'Cancelled' => 'orange',
                             default => 'pending'
                         };
@@ -125,6 +130,11 @@ try {
                                 </span></td>
                             <td>
                                 <?= date('M d, Y', strtotime($po['order_date'])) ?>
+                                <?php if (!empty($po['item_name'])): ?>
+                                    <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:0.25rem;">
+                                        <?= htmlspecialchars($po['item_name']) ?> (<?= number_format($po['requested_quantity'], 1) ?> units)
+                                    </div>
+                                <?php endif; ?>
                             </td>
                             <td><span style="font-weight:600;">
                                     <?= number_format($po['total_amount'] ?? 0, 2) ?>
@@ -137,20 +147,19 @@ try {
                                     <?= htmlspecialchars($po['order_status']) ?>
                                 </span></td>
                             <td>
-                                <div class="action-menu-container">
-                                    <button class="action-btn" onclick="toggleActionMenu(event, this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-                                    <div class="dropdown-menu">
-                                        <?php if ($po['order_status'] === 'Pending'): ?>
-                                            <button class="dropdown-item" onclick="receivePO('<?= $po['po_id'] ?>')"><i class="fa-solid fa-box-open"></i> Mark Received</button>
-                                        <?php endif; ?>
-                                        <?php if ($po['payment_status'] === 'Pending'): ?>
-                                            <button class="dropdown-item" onclick="markPaid('<?= $po['po_id'] ?>')"><i class="fa-solid fa-credit-card"></i> Mark Paid</button>
-                                        <?php endif; ?>
-                                        <?php if ($po['order_status'] !== 'Cancelled'): ?>
+                                <?php if ($po['order_status'] === 'Pending'): ?>
+                                    <div class="action-menu-container">
+                                        <button class="action-btn" onclick="toggleActionMenu(event, this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                        <div class="dropdown-menu">
+                                            <?php if ($po['payment_status'] === 'Paid'): ?>
+                                                <button class="dropdown-item" onclick="receivePO('<?= $po['po_id'] ?>')"><i class="fa-solid fa-box-open"></i> Deliver</button>
+                                            <?php else: ?>
+                                                <button class="dropdown-item" onclick="markPaid('<?= $po['po_id'] ?>')"><i class="fa-solid fa-credit-card"></i> Mark Paid</button>
+                                            <?php endif; ?>
                                             <button class="dropdown-item delete" onclick="cancelPO('<?= $po['po_id'] ?>')"><i class="fa-solid fa-ban"></i> Cancel PO</button>
-                                        <?php endif; ?>
+                                        </div>
                                     </div>
-                                </div>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -162,6 +171,7 @@ try {
 
 <script>
     const suppliersData = <?= json_encode($suppliers) ?>;
+    const itemsData = <?= json_encode($rawMaterials) ?>;
 
     document.addEventListener('click', e => {
         if (!e.target.closest('.action-menu-container')) {
@@ -244,9 +254,17 @@ try {
             alert('Please add a supplier first before creating a Purchase Order.');
             return;
         }
+        if (itemsData.length === 0) {
+            alert('No raw materials found in inventory. Please add one first.');
+            return;
+        }
 
         const supplierOptions = suppliersData.map((s, i) =>
             `<div class="custom-option ${i===0?'selected':''}" data-value="${s.supplier_id}">${s.supplier_name}</div>`
+        ).join('');
+        
+        const itemOptions = itemsData.map((item, i) =>
+            `<div class="custom-option ${i===0?'selected':''}" data-value="${item.item_id}">${item.item_name} ($${item.standard_cost})</div>`
         ).join('');
 
         const currencyOptions = ['JOD','USD','EUR','GBP','SAR','AED'].map((c, i) =>
@@ -255,6 +273,8 @@ try {
 
         const firstSupplierId = suppliersData[0].supplier_id;
         const firstSupplierName = suppliersData[0].supplier_name;
+        const firstItemId = itemsData[0].item_id;
+        const firstItemName = itemsData[0].item_name;
 
         const content = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
@@ -262,30 +282,47 @@ try {
                 <button type="button" onclick="document.getElementById('generic-modal').classList.remove('active')" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-primary);">&times;</button>
             </div>
             <form onsubmit="submitNewPO(event)">
-                <div style="margin-bottom:1.5rem;">
-                    <label style="display:block; margin-bottom:0.5rem; color:var(--text-secondary); font-size:0.9rem;">Supplier *</label>
-                    <div class="custom-select-wrapper">
-                        <input type="hidden" name="supplier_id" value="${firstSupplierId}" required>
-                        <div class="custom-select">
-                            <div class="custom-select-trigger">
-                                <span class="selected-text">${firstSupplierName}</span>
-                                <i class="fa-solid fa-chevron-down"></i>
+                <div style="display:flex; gap:1.5rem; margin-bottom:1.5rem;">
+                    <div style="flex:1;">
+                        <label style="display:block; margin-bottom:0.5rem; color:var(--text-secondary); font-size:0.9rem;">Supplier *</label>
+                        <div class="custom-select-wrapper">
+                            <input type="hidden" name="supplier_id" value="${firstSupplierId}" required>
+                            <div class="custom-select">
+                                <div class="custom-select-trigger">
+                                    <span class="selected-text">${firstSupplierName}</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <div class="custom-options">
+                                ${supplierOptions}
                             </div>
                         </div>
-                        <div class="custom-options">
-                            ${supplierOptions}
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block; margin-bottom:0.5rem; color:var(--text-secondary); font-size:0.9rem;">Raw Material *</label>
+                        <div class="custom-select-wrapper">
+                            <input type="hidden" name="item_id" value="${firstItemId}" required>
+                            <div class="custom-select">
+                                <div class="custom-select-trigger">
+                                    <span class="selected-text">${firstItemName}</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <div class="custom-options">
+                                ${itemOptions}
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div style="display:flex; gap:1.5rem; margin-bottom:1.5rem;">
                     <div style="flex:1;">
-                        <label style="display:block; margin-bottom:0.5rem; color:var(--text-secondary); font-size:0.9rem;">Order Date *</label>
-                        <input type="date" name="order_date" required value="${new Date().toISOString().split('T')[0]}" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-body); color:var(--text-primary);">
+                        <label style="display:block; margin-bottom:0.5rem; color:var(--text-secondary); font-size:0.9rem;">Quantity (units) *</label>
+                        <input type="number" step="0.01" min="0.01" name="requested_quantity" required placeholder="0.00" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-body); color:var(--text-primary);">
                     </div>
                     <div style="flex:1;">
-                        <label style="display:block; margin-bottom:0.5rem; color:var(--text-secondary); font-size:0.9rem;">Total Amount *</label>
-                        <input type="number" step="0.01" min="0.01" name="total_amount" required placeholder="0.00" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-body); color:var(--text-primary);">
+                        <label style="display:block; margin-bottom:0.5rem; color:var(--text-secondary); font-size:0.9rem;">Order Date *</label>
+                        <input type="date" name="order_date" required value="${new Date().toISOString().split('T')[0]}" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-body); color:var(--text-primary);">
                     </div>
                 </div>
 
@@ -339,7 +376,7 @@ try {
 
     /* ---- PO Actions ---- */
     async function receivePO(poId) {
-        if (!confirm('Mark PO ' + poId + ' as Received?')) return;
+        if (!confirm('Mark PO ' + poId + ' as Delivered?')) return;
         try {
             const fd = new FormData();
             fd.append('po_id', poId);

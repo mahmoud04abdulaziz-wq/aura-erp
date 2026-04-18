@@ -27,7 +27,7 @@ global $pdo;
 
 $so_id = trim($_POST['so_id'] ?? '');
 $status = trim($_POST['status'] ?? '');
-$valid_statuses = ['Pending', 'In Production', 'Pending Delivery', 'Delivered'];
+$valid_statuses = ['Pending', 'In Production', 'Completed', 'Delivered'];
 
 if (empty($so_id) || !in_array($status, $valid_statuses, true)) {
     http_response_code(400);
@@ -94,102 +94,12 @@ try {
             
             if ($fg) {
                 // target_quantity = 1 means ONE mix run. The mix_outputs table defines what products come out.
-                $insertProd = $pdo->prepare("INSERT INTO production_orders (production_id, item_id, target_quantity, status, operator_user_id) VALUES (?, ?, 1, 'Planned', ?)");
-                $insertProd->execute([$prod_id, $fg, $userId]);
+                $insertProd = $pdo->prepare("INSERT INTO production_orders (production_id, item_id, target_quantity, status, operator_user_id, so_id) VALUES (?, ?, 1, 'Planned', ?, ?)");
+                $insertProd->execute([$prod_id, $fg, $userId, $so_id]);
             }
         }
         
         addNotification($pdo, "🏭 Mix Batch Started", "Order {$refLabel} triggered production Mix {$prod_id}", 'manufacturing');
-    
-    // =============================================================
-    // PIPELINE HOOK: PENDING DELIVERY (Production Complete)
-    // =============================================================
-    } elseif ($status === 'Pending Delivery') {
-        $linkedBatch = $pdo->prepare("SELECT production_id FROM production_orders WHERE status IN ('Mixing','Curing','Planned') ORDER BY created_at DESC LIMIT 1");
-        $linkedBatch->execute();
-        $batchId = $linkedBatch->fetchColumn();
-        
-        if ($batchId) {
-            $pdo->prepare("UPDATE production_orders SET status = 'Completed', qa_status = 'Passed', actual_yield = target_quantity WHERE production_id = ?")
-                ->execute([$batchId]);
-            
-            // Get the batch item info
-            $batchInfo = $pdo->prepare("SELECT po.*, im.item_name FROM production_orders po JOIN item_master im ON po.item_id = im.item_id WHERE po.production_id = ?");
-            $batchInfo->execute([$batchId]);
-            $batch = $batchInfo->fetch();
-            
-            if ($batch) {
-                $itemId = $batch['item_id'];
-                $yieldQty = $batch['target_quantity'];
-                $totalBomCost = 0;
-
-                // Find recipe
-                // Check legacy column first
-                $colCheck = $pdo->query("SHOW COLUMNS FROM recipes LIKE 'finished_item_id'");
-                if ($colCheck->rowCount() > 0) {
-                    $recipeStmt = $pdo->prepare("SELECT recipe_id, base_yield_qty FROM recipes WHERE finished_item_id = ? LIMIT 1");
-                    $recipeStmt->execute([$itemId]);
-                } else {
-                    $recipeStmt = $pdo->query("SELECT recipe_id, base_yield_qty FROM recipes LIMIT 1");
-                }
-                $recipe = $recipeStmt->fetch();
-
-                if ($recipe) {
-                    // 1 mix run = 1x the recipe. base_yield_qty represents mixes per batch.
-                    $scaleFactor = max(1, $yieldQty) / max(1, (float)$recipe['base_yield_qty']);
-                    $ingStmt = $pdo->prepare("SELECT ri.raw_material_id, ri.quantity_required, im.standard_cost, im.item_name FROM recipe_ingredients ri JOIN item_master im ON ri.raw_material_id = im.item_id WHERE ri.recipe_id = ?");
-                    $ingStmt->execute([$recipe['recipe_id']]);
-                    
-                    foreach ($ingStmt->fetchAll() as $ing) {
-                        $consumeQty = round($ing['quantity_required'] * $scaleFactor, 3);
-                        
-                        // STOCK VALIDATION: clamp to available stock
-                        $currentStock = getCurrentStock($pdo, $ing['raw_material_id']);
-                        if ($consumeQty > $currentStock) {
-                            $consumeQty = max(0, $currentStock); // never go negative
-                            addNotification($pdo, "⚠️ Stock Shortage", "{$ing['item_name']} insufficient for full batch ({$refLabel}). Used remaining {$consumeQty} units.", 'inventory');
-                        }
-                        
-                        if ($consumeQty > 0) {
-                            $totalBomCost += $consumeQty * $ing['standard_cost'];
-                            $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Consumed', ?, ?, ?)")
-                                ->execute([$ing['raw_material_id'], -$consumeQty, $refLabel, $userId]);
-                        }
-                    }
-                }
-
-                // Credit finished goods
-                $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Produced', ?, ?, ?)")
-                    ->execute([$itemId, $yieldQty, $refLabel, $userId]);
-                
-                // Check for mix_outputs table (multi-product model)
-                try {
-                    $moCheck = $pdo->query("SELECT COUNT(*) FROM mix_outputs")->fetchColumn();
-                    if ($moCheck > 0 && $recipe) {
-                        $moStmt = $pdo->prepare("SELECT mo.item_id, mo.quantity_per_mix, im.item_name FROM mix_outputs mo JOIN item_master im ON mo.item_id = im.item_id WHERE mo.recipe_id = ?");
-                        $moStmt->execute([$recipe['recipe_id']]);
-                        foreach ($moStmt->fetchAll() as $out) {
-                            $outQty = round($out['quantity_per_mix'] * $scaleFactor, 3);
-                            $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Produced', ?, ?, ?)")
-                                ->execute([$out['item_id'], $outQty, $refLabel, $userId]);
-                        }
-                    }
-                } catch (Exception $e) {
-                    // mix_outputs may not exist yet
-                }
-
-                // Record BOM expense with company name
-                if ($totalBomCost > 0) {
-                    $pdo->prepare("INSERT INTO finance_ledger (transaction_id, transaction_date, transaction_type, category, amount, reference_id, recorded_by) VALUES (?, CURRENT_DATE(), 'Expense', 'Production Materials (BOM)', ?, ?, ?)")
-                        ->execute(['BOM-' . time(), $totalBomCost, $refLabel, $userId]);
-                }
-
-                addNotification($pdo, "✅ Production Complete", "Mix {$batchId} completed for {$refLabel}. Raw materials consumed, finished goods stocked.", 'manufacturing');
-                addNotification($pdo, "💰 BOM Cost Recorded", "Material cost $" . number_format($totalBomCost, 2) . " for {$refLabel}", 'finance');
-            }
-        } else {
-            addNotification($pdo, "QC Passed", "{$refLabel} passed quality check, ready for delivery.", 'manufacturing');
-        }
     
     // =============================================================
     // PIPELINE HOOK: DELIVERED (Revenue + JoFotara Invoice)

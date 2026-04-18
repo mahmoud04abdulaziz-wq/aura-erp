@@ -339,7 +339,7 @@ echo PHP_EOL . "--- Sales Orders ---" . PHP_EOL;
 $salesOrders = [
     ['SO-260301-0001', null, 1, '2026-03-01', 4500.00, 'Amman, Jordan', 'Delivered', 4, 'Bank Transfer'],
     ['SO-260305-0001', null, 2, '2026-03-05', 7800.00, 'Aqaba, Jordan', 'Delivered', 4, 'Credit Card'],
-    ['SO-260310-0001', null, 3, '2026-03-10', 15200.00, 'Dubai, UAE', 'Pending Delivery', 4, 'Bank Transfer'],
+    ['SO-260310-0001', null, 3, '2026-03-10', 15200.00, 'Dubai, UAE', 'Completed', 4, 'Bank Transfer'],
     ['SO-260315-0001', null, 1, '2026-03-15', 3200.00, 'Amman, Jordan', 'In Production', 4, 'Cash'],
     ['SO-260320-0001', null, 4, '2026-03-20', 6500.00, 'Irbid, Jordan', 'In Production', 4, 'Credit Card'],
     ['SO-260325-0001', null, 2, '2026-03-25', 9100.00, 'Aqaba, Jordan', 'Pending', 4, 'Bank Transfer'],
@@ -518,7 +518,7 @@ if ($logCheck < 5) {
         (3, 'Production', 'Batch PROD-260328-001 moved to Curing stage', 'Success', '2026-03-29 08:00:00'),
         (1, 'Login', 'Failed login attempt for admin@company.com', 'Failure', '2026-04-02 07:55:00'),
         (5, 'Inventory', 'Received 1000kg White Cement into Raw Material Store', 'Success', '2026-03-28 09:00:00'),
-        (4, 'Order Updated', 'SO-260310-0001 status changed to Pending Delivery', 'Success', '2026-03-30 16:00:00')
+        (4, 'Order Updated', 'SO-260310-0001 status changed to Completed', 'Success', '2026-03-30 16:00:00')
     ");
     echo "  ✓ 10 system log entries created" . PHP_EOL;
 } else {
