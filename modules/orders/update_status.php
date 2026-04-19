@@ -102,62 +102,13 @@ try {
         addNotification($pdo, "🏭 Mix Batch Started", "Order {$refLabel} triggered production Mix {$prod_id}", 'manufacturing');
     
     // =============================================================
-    // PIPELINE HOOK: DELIVERED (Revenue + JoFotara Invoice)
+    // PIPELINE HOOK: DELIVERED — Blocked (use Delivery Dispatch page)
     // =============================================================
     } elseif ($status === 'Delivered') {
-        $val = $soData['total_price'] ?? 0;
-        
-        // Record income with company name
-        $trans_id = 'INC-' . time();
-        $pdo->prepare("INSERT INTO finance_ledger (transaction_id, transaction_date, transaction_type, category, amount, reference_id, recorded_by) VALUES (?, CURRENT_DATE(), 'Income', 'Sales Revenue', ?, ?, ?)")
-            ->execute([$trans_id, $val, $refLabel, $userId]);
-        
-        addNotification($pdo, "💵 Revenue Recorded", "Payment $" . number_format($val, 2) . " from {$companyName} ({$so_id})", 'finance');
-
-        // --- JoFotara Compliance ---
-        require_once __DIR__ . '/../../includes/jofotara_service.php';
-        
-        $invoicePayload = [
-            'InvoiceNumber' => 'INV-' . date('Ymd') . '-' . substr(md5($so_id), 0, 6),
-            'IssueDate' => date('Y-m-d'),
-            'SellerTaxID' => 'JO-PENDING-TAX-ID',
-            'BuyerName' => $companyName,
-            'BuyerEmail' => $soData['email'] ?? '',
-            'TotalAmount' => $val,
-            'TaxRate' => 0.16,
-            'TaxAmount' => round($val * 0.16, 2),
-            'GrandTotal' => round($val * 1.16, 2),
-            'Currency' => 'JOD',
-            'PaymentMethod' => $soData['payment_method'] ?? 'Bank Transfer',
-            'ReferenceOrderID' => $so_id,
-        ];
-        
-        $joFotara = new JoFotaraService($pdo);
-        $submissionResult = $joFotara->submitInvoice($invoicePayload);
-        
-        $qrData = $submissionResult['qr_code'] ?? base64_encode(json_encode($invoicePayload));
-        $submissionStatus = $submissionResult['success'] ? 'Submitted' : 'Failed';
-        
-        $pdo->exec("CREATE TABLE IF NOT EXISTS invoices_jo (
-            invoice_id VARCHAR(50) PRIMARY KEY,
-            so_id VARCHAR(50) NOT NULL,
-            payload JSON NOT NULL,
-            qr_code TEXT,
-            submission_status VARCHAR(20) DEFAULT 'Pending',
-            istd_ref VARCHAR(100) DEFAULT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )");
-        $invStmt = $pdo->prepare("INSERT IGNORE INTO invoices_jo (invoice_id, so_id, payload, qr_code, submission_status, istd_ref) VALUES (?, ?, ?, ?, ?, ?)");
-        $invStmt->execute([
-            $invoicePayload['InvoiceNumber'], $so_id, 
-            json_encode($invoicePayload), $qrData,
-            $submissionStatus, $submissionResult['submission_id'] ?? null
-        ]);
-        
-        $statusEmoji = $submissionResult['success'] ? '✅' : '⚠️';
-        $simNote = !empty($submissionResult['simulated']) ? ' (Demo Mode)' : '';
-        addNotification($pdo, "🧾 JoFotara {$statusEmoji}", "Invoice {$invoicePayload['InvoiceNumber']} for {$companyName}{$simNote}", 'finance');
-        addNotification($pdo, "📋 BOM Report Ready", "BOM data for {$refLabel} available in Accounting.", 'finance');
+        // Delivery is now handled exclusively by Sales → Delivery Dispatch
+        // (process_delivery.php does atomic: stock check → deduct → revenue → invoice)
+        echo json_encode(['success' => false, 'error' => 'Delivery is finalized via the Delivery Dispatch page.']);
+        exit;
     }
 
     echo json_encode(['success' => true, 'message' => "Status updated to {$status} for {$companyName}."]);

@@ -60,6 +60,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $orderSummary
                 ]);
 
+                $customerId = $pdo->lastInsertId();
+
+                // Save structured cart items to web_order_items
+                $itemStmt = $pdo->prepare("INSERT INTO web_order_items (customer_id, item_id, item_name, quantity, unit_price) VALUES (?, ?, ?, ?, ?)");
+                foreach ($cart as $item) {
+                    $itemStmt->execute([
+                        $customerId,
+                        $item['item_id'] ?? 'FG-001',
+                        $item['name'],
+                        $item['qty'],
+                        $item['unit_price']
+                    ]);
+                }
+
                 // Clear the cart
                 $_SESSION['cart'] = [];
                 $orderPlaced = true;
@@ -70,6 +84,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     try {
                         $stmt = $pdo->prepare("UPDATE customers SET default_address = ?, lead_status = 'New', contact_person = ?, phone_number = ?, email = ? WHERE company_name = ?");
                         $stmt->execute([$orderSummary, $contactPerson, $phone, $email, $companyName]);
+
+                        // Get the existing customer ID and save structured items
+                        $custIdStmt = $pdo->prepare("SELECT customer_id FROM customers WHERE company_name = ?");
+                        $custIdStmt->execute([$companyName]);
+                        $existingCustId = $custIdStmt->fetchColumn();
+
+                        if ($existingCustId) {
+                            // Remove old web order items for this customer
+                            $pdo->prepare("DELETE FROM web_order_items WHERE customer_id = ?")->execute([$existingCustId]);
+                            // Save new structured cart items
+                            $itemStmt = $pdo->prepare("INSERT INTO web_order_items (customer_id, item_id, item_name, quantity, unit_price) VALUES (?, ?, ?, ?, ?)");
+                            foreach ($cart as $item) {
+                                $itemStmt->execute([
+                                    $existingCustId,
+                                    $item['item_id'] ?? 'FG-001',
+                                    $item['name'],
+                                    $item['qty'],
+                                    $item['unit_price']
+                                ]);
+                            }
+                        }
+
                         $_SESSION['cart'] = [];
                         $orderPlaced = true;
                     } catch (PDOException $ex) {

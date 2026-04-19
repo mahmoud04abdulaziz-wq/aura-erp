@@ -11,6 +11,7 @@ try {
                 c.company_name
          FROM sales_orders so
          JOIN customers c ON so.customer_id = c.customer_id
+         WHERE so.order_status != 'Archived'
          ORDER BY so.order_date DESC"
     )->fetchAll();
 } catch (Exception $e) {
@@ -47,7 +48,7 @@ function getProgressColor($status) {
 <div class="card-header"
     style="margin-bottom: 1.5rem; background: var(--bg-panel); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
     <h3>Orders Progress Board</h3>
-    <p style="color:var(--text-secondary); font-size:0.9rem;">Drag orders between columns to advance through the pipeline. Progress bars update automatically.</p>
+    <p style="color:var(--text-secondary); font-size:0.9rem;">Drag orders between columns to advance through the pipeline. <span style="color:#f59e0b;">📦 Delivery is finalized via <a href="<?= BASE_URL ?>/app.php?view=sales_delivery" style="color:var(--accent-primary); font-weight:600;">Delivery Dispatch</a>.</span></p>
 </div>
 
 <div class="kanban-board">
@@ -65,7 +66,7 @@ function getProgressColor($status) {
                 <?php else: ?>
                     <?php foreach ($col['orders'] as $order): ?>
                         <?php $pct = getProgressPercent($order['order_status']); $pColor = getProgressColor($order['order_status']); ?>
-                        <div class="kanban-card" draggable="true" data-order-id="<?= htmlspecialchars($order['so_id']) ?>" onclick="openFeasibilityModal('<?= htmlspecialchars($order['so_id']) ?>')">
+                        <div class="kanban-card" draggable="<?= $status === 'Delivered' ? 'false' : 'true' ?>" data-order-id="<?= htmlspecialchars($order['so_id']) ?>" onclick="openFeasibilityModal('<?= htmlspecialchars($order['so_id']) ?>')" <?= $status === 'Delivered' ? 'style="opacity:0.6; cursor:default;"' : '' ?>>
                             <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem;">
                                 <span style="font-weight:700; color:var(--accent-primary); font-size:0.9rem;">
                                     <?= htmlspecialchars($order['so_id']) ?>
@@ -101,6 +102,12 @@ function getProgressColor($status) {
                                 <span>$<?= number_format($order['total_price'] ?? 0, 2) ?></span>
                                 <span><?= date('M d', strtotime($order['order_date'])) ?></span>
                             </div>
+                            <?php if ($status === 'Delivered'): ?>
+                                <button onclick="event.stopPropagation(); archiveOrder('<?= htmlspecialchars($order['so_id']) ?>')" 
+                                        style="margin-top: 0.5rem; width: 100%; background: #e2e8f0; color: #475569; border: none; padding: 0.4rem; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600;">
+                                    <i class="fa-solid fa-box-archive"></i> Archive
+                                </button>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -238,6 +245,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const orderId = card.dataset.orderId;
             if (!orderId) return;
 
+            // Block drag to Delivered — must use Delivery Dispatch page
+            if (newStatus === 'Delivered') {
+                alert('Delivery is finalized via the Delivery Dispatch page.');
+                window.location.reload();
+                return;
+            }
+
             // Animate the progress bar immediately
             const info = progressMap[newStatus];
             if (info) {
@@ -288,6 +302,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+function archiveOrder(soId) {
+    if (!confirm('Archive order ' + soId + '?')) return;
+    fetch('<?= BASE_URL ?>/modules/orders/archive_order.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=archive_single&so_id=' + encodeURIComponent(soId)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown'));
+        }
+    });
+}
 
 function openFeasibilityModal(orderId) {
     if (document.querySelector('.dragging')) return;

@@ -70,12 +70,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             require_once __DIR__ . '/../../includes/notifications.php';
             
             $itemId = $batch['item_id'];
-            $yieldQty = $actualYield ?? $batch['actual_yield'] ?? $batch['target_quantity'];
             $targetQty = $batch['target_quantity'];
             $userId = $_SESSION['user_id'] ?? 1;
             $batchLabel = "Mix {$prodId} ({$batch['item_name']})";
 
-            // 1. FIND THE RECIPE (compatible with both legacy and mix model)
+            // 1. FIND THE RECIPE
             $colCheck = $pdo->query("SHOW COLUMNS FROM recipes LIKE 'finished_item_id'");
             if ($colCheck->rowCount() > 0) {
                 $recipeStmt = $pdo->prepare("SELECT recipe_id, base_yield_qty FROM recipes WHERE finished_item_id = ? LIMIT 1");
@@ -86,10 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $recipe = $recipeStmt->fetch();
 
             $totalBomCost = 0;
+            $scaleFactor = $targetQty / max(1, (float)($recipe['base_yield_qty'] ?? 1));
 
             if ($recipe) {
-                $scaleFactor = $targetQty / max(1, (float)$recipe['base_yield_qty']);
-
                 // 2. DEDUCT RAW MATERIALS with STOCK VALIDATION
                 $ingStmt = $pdo->prepare("
                     SELECT ri.raw_material_id, ri.quantity_required, im.item_name, im.standard_cost
@@ -118,11 +116,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             ->execute([$ing['raw_material_id'], -$consumeQty, $batchLabel, $userId]);
                     }
                 }
-            }
 
-            // 3. CREDIT FINISHED GOODS
-            $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Produced', ?, ?, ?)")
-                ->execute([$itemId, $yieldQty, $batchLabel, $userId]);
+                // 3. CREDIT ALL FINISHED GOODS from mix_outputs (Mix-to-Many model)
+                $outputsStmt = $pdo->prepare("
+                    SELECT mo.item_id, mo.output_quantity, im.item_name 
+                    FROM mix_outputs mo
+                    JOIN item_master im ON mo.item_id = im.item_id
+                    WHERE mo.recipe_id = ?
+                ");
+                $outputsStmt->execute([$recipe['recipe_id']]);
+                $outputs = $outputsStmt->fetchAll();
+
+                $totalFGProduced = 0;
+                $fgSummary = [];
+                foreach ($outputs as $out) {
+                    $producedQty = round($out['output_quantity'] * $scaleFactor, 0);
+                    if ($producedQty > 0) {
+                        $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Produced', ?, ?, ?)")
+                            ->execute([$out['item_id'], $producedQty, $batchLabel, $userId]);
+                        $totalFGProduced += $producedQty;
+                        $fgSummary[] = "{$producedQty}× {$out['item_name']}";
+                    }
+                }
+
+                // Fallback: if no mix_outputs found, credit the single original FG
+                if (empty($outputs)) {
+                    $yieldQty = $actualYield ?? $batch['actual_yield'] ?? $targetQty;
+                    $pdo->prepare("INSERT INTO inventory_ledger (item_id, warehouse_id, transaction_type, quantity_change, reference_id, recorded_by) VALUES (?, 1, 'Produced', ?, ?, ?)")
+                        ->execute([$itemId, $yieldQty, $batchLabel, $userId]);
+                    $totalFGProduced = $yieldQty;
+                    $fgSummary[] = "{$yieldQty}× {$batch['item_name']}";
+                }
+            }
 
             // 4. RECORD BOM EXPENSE
             if ($totalBomCost > 0) {
@@ -130,10 +155,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ->execute(['BOM-' . time(), $totalBomCost, $batchLabel, $userId]);
             }
 
-            // 5. NOTIFY
+            // 5. NOTIFY with detailed FG output list
             $costStr = number_format($totalBomCost, 2);
-            addNotification($pdo, "✅ Batch Completed", "{$batchLabel}: {$yieldQty} units produced. BOM cost: \${$costStr}", 'manufacturing');
-            addNotification($pdo, "📦 Inventory Updated", "FG +{$yieldQty}. Raw materials consumed per recipe for {$batchLabel}.", 'inventory');
+            $fgList = implode(', ', $fgSummary);
+            addNotification($pdo, "✅ Batch Completed", "{$batchLabel}: {$totalFGProduced} total FG produced ({$fgList}). BOM cost: \${$costStr}", 'manufacturing');
+            addNotification($pdo, "📦 Inventory Updated", "Mix outputs credited: {$fgList}", 'inventory');
             
             // 6. UPDATE LINKED SALES ORDER
             if (!empty($batch['so_id'])) {

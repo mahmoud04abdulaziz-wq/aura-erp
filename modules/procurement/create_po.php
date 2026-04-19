@@ -17,15 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 global $pdo;
 
 $supplier_id = intval($_POST['supplier_id'] ?? 0);
-$order_date = trim($_POST['order_date'] ?? '');
+$order_date = trim($_POST['order_date'] ?? date('Y-m-d'));
 $item_id = trim($_POST['item_id'] ?? '');
 $requested_quantity = floatval($_POST['requested_quantity'] ?? 0);
 $currency = trim($_POST['currency'] ?? 'JOD');
-$delivery_location = trim($_POST['delivery_location'] ?? '');
+$delivery_location = trim($_POST['delivery_location'] ?? 'Main Warehouse');
 
-if ($supplier_id <= 0 || empty($order_date) || empty($item_id) || $requested_quantity <= 0) {
+if ($supplier_id <= 0 || empty($item_id) || $requested_quantity <= 0) {
     http_response_code(400);
-    echo json_encode(['error' => 'Supplier, item, order date, and quantity are required.']);
+    echo json_encode(['error' => 'Supplier, item, and quantity are required.']);
     exit;
 }
 

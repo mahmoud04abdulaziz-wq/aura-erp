@@ -13,11 +13,32 @@ $view = $_GET['view'] ?? 'dashboard';
 // Map of view IDs to [pageTitle, requiredPermission, viewFile]
 $viewMap = [
     'dashboard' => ['Dashboard', 'dashboard', __DIR__ . '/views/dashboard.php'],
+
+    // Sales
+    'sales_inbox' => ['Order Inbox', 'crm', __DIR__ . '/views/sales_inbox.php'],
     'orders' => ['Orders', 'crm', __DIR__ . '/views/orders.php'],
-    'kanban' => ['Orders Progress', 'manufacturing', __DIR__ . '/views/kanban.php'],
+    'sales_delivery' => ['Delivery Dispatch', 'crm', __DIR__ . '/views/sales_delivery.php'],
+    'order_archive' => ['Order Archive', 'crm', __DIR__ . '/views/order_archive.php'],
+
+    // Production
+    'mix_batches' => ['Mix Batches', 'manufacturing', __DIR__ . '/views/mix_batches.php'],
+    'mix_recipes' => ['Mix Recipes', 'manufacturing', __DIR__ . '/views/mix_recipes.php'],
+    'prod_material_requests' => ['Request Materials', 'manufacturing', __DIR__ . '/views/prod_material_requests.php'],
+    'kanban' => ['Active Batches', 'manufacturing', __DIR__ . '/views/kanban.php'],
     'production' => ['Production', 'manufacturing', __DIR__ . '/views/production.php'],
-    'inventory' => ['Inventory', 'inventory', __DIR__ . '/views/inventory.php'],
+
+    // Procurement
+    'proc_home' => ['Procurement Home', 'procurement', __DIR__ . '/views/proc_home.php'],
+    'proc_suppliers' => ['Suppliers', 'procurement', __DIR__ . '/views/proc_suppliers.php'],
+    'proc_create' => ['Create PO', 'procurement', __DIR__ . '/views/proc_create.php'],
+    'proc_track' => ['Track Orders', 'procurement', __DIR__ . '/views/proc_track.php'],
+    'proc_receive' => ['Receive Orders', 'procurement', __DIR__ . '/views/proc_receive.php'],
+    'proc_requests' => ['Incoming Requests', 'procurement', __DIR__ . '/views/proc_requests.php'],
+    'proc_rop' => ['ROP Alerts', 'procurement', __DIR__ . '/views/proc_rop.php'],
     'procurement' => ['Procurement', 'procurement', __DIR__ . '/views/procurement.php'],
+
+    // Management
+    'inventory' => ['Inventory', 'inventory', __DIR__ . '/views/inventory.php'],
     'hr' => ['HR', 'hr', __DIR__ . '/views/hr.php'],
     'accounting' => ['Accounting', 'finance', __DIR__ . '/views/accounting.php'],
     'invoices' => ['Invoices', 'finance', __DIR__ . '/views/invoices.php'],
