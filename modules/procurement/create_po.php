@@ -1,8 +1,10 @@
 <?php
 /**
- * AURA ERP — Create Purchase Order
- * Inserts a new PO into purchase_orders table with auto-generated ID.
+ * MiskStone ERP — Create Purchase Order (Multi-Line)
+ * Accepts: supplier_id, delivery_location, lines[{item_id, quantity, unit_price}]
+ * Creates a PO header + po_lines. NO expense recorded here — only on receipt.
  */
+require_once __DIR__ . '/../../config/db_connect.php';
 require_once __DIR__ . '/../auth/session_guard.php';
 requireLogin();
 
@@ -14,48 +16,84 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-global $pdo;
+$supplierId = $_POST['supplier_id'] ?? '';
+$deliveryLocation = $_POST['delivery_location'] ?? 'Main Warehouse';
+$lines = $_POST['lines'] ?? [];
 
-$supplier_id = intval($_POST['supplier_id'] ?? 0);
-$order_date = trim($_POST['order_date'] ?? date('Y-m-d'));
-$item_id = trim($_POST['item_id'] ?? '');
-$requested_quantity = floatval($_POST['requested_quantity'] ?? 0);
-$currency = trim($_POST['currency'] ?? 'JOD');
-$delivery_location = trim($_POST['delivery_location'] ?? 'Main Warehouse');
+// Legacy single-item support
+$legacyItemId = $_POST['item_id'] ?? '';
+$legacyQty = $_POST['requested_quantity'] ?? 0;
 
-if ($supplier_id <= 0 || empty($item_id) || $requested_quantity <= 0) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Supplier, item, and quantity are required.']);
+if (empty($supplierId)) {
+    echo json_encode(['error' => 'Supplier is required.']);
     exit;
 }
 
 try {
-    // Lookup cost
-    $stmt = $pdo->prepare("SELECT standard_cost FROM item_master WHERE item_id = ?");
-    $stmt->execute([$item_id]);
-    $standard_cost = $stmt->fetchColumn() ?: 0;
-    
-    $total_amount = $standard_cost * $requested_quantity;
-    // Generate unique PO ID: PO-YYMMDD-XXXX
-    $dateStr = date('ymd', strtotime($order_date));
-    $countStmt = $pdo->query("SELECT COUNT(*) FROM purchase_orders WHERE po_id LIKE 'PO-$dateStr%'");
-    $count = $countStmt->fetchColumn() + 1;
-    $po_id = "PO-$dateStr-" . str_pad($count, 4, '0', STR_PAD_LEFT);
+    $pdo->beginTransaction();
+    $userId = $_SESSION['user_id'] ?? 1;
 
-    $user_id = $_SESSION['user_id'] ?? 1;
+    // Get supplier info
+    $supplier = $pdo->prepare("SELECT supplier_name, preferred_currency FROM suppliers WHERE supplier_id = ?");
+    $supplier->execute([$supplierId]);
+    $supplierRow = $supplier->fetch(PDO::FETCH_ASSOC);
+    if (!$supplierRow) throw new Exception('Supplier not found.');
 
-    $stmt = $pdo->prepare(
-        "INSERT INTO purchase_orders (po_id, supplier_id, order_date, total_amount, currency, delivery_location, order_status, payment_status, created_by, item_id, requested_quantity)
-         VALUES (?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?)"
-    );
-    $stmt->execute([$po_id, $supplier_id, $order_date, $total_amount, $currency, $delivery_location, $user_id, $item_id, $requested_quantity]);
+    $currency = $supplierRow['preferred_currency'] ?? 'JOD';
 
-    $logStmt = $pdo->prepare("INSERT INTO system_logs (user_id, action_type, description, status) VALUES (?, 'CREATE_PO', ?, 'Success')");
-    $logStmt->execute([$user_id, "Created PO $po_id for supplier ID $supplier_id, amount $total_amount $currency"]);
+    // Generate PO ID
+    $poId = 'PO-' . date('ymd') . '-' . str_pad(mt_rand(1, 999), 3, '0', STR_PAD_LEFT);
 
-    echo json_encode(['success' => true, 'message' => "Purchase Order $po_id created.", 'po_id' => $po_id]);
+    // Handle legacy single-item format
+    if (empty($lines) && !empty($legacyItemId) && $legacyQty > 0) {
+        $itemCost = $pdo->prepare("SELECT standard_cost FROM item_master WHERE item_id = ?");
+        $itemCost->execute([$legacyItemId]);
+        $unitPrice = (float)$itemCost->fetchColumn();
+        $lines = [['item_id' => $legacyItemId, 'quantity' => $legacyQty, 'unit_price' => $unitPrice]];
+    }
+
+    if (empty($lines)) {
+        throw new Exception('At least one line item is required.');
+    }
+
+    // Calculate total
+    $totalAmount = 0;
+    foreach ($lines as $line) {
+        $totalAmount += (float)$line['quantity'] * (float)$line['unit_price'];
+    }
+
+    // Insert PO header
+    $pdo->prepare("
+        INSERT INTO purchase_orders (po_id, supplier_id, order_date, total_amount, currency, delivery_location, order_status, payment_status, created_by)
+        VALUES (?, ?, CURRENT_DATE(), ?, ?, ?, 'Pending', 'Pending', ?)
+    ")->execute([$poId, $supplierId, $totalAmount, $currency, $deliveryLocation, $userId]);
+
+    // Insert PO lines
+    $lineStmt = $pdo->prepare("INSERT INTO po_lines (po_id, item_id, quantity, unit_price) VALUES (?, ?, ?, ?)");
+    foreach ($lines as $line) {
+        $lineStmt->execute([$poId, $line['item_id'], $line['quantity'], $line['unit_price']]);
+    }
+
+    // Log
+    $lineCount = count($lines);
+    $pdo->prepare("INSERT INTO system_logs (user_id, action_type, description, status) VALUES (?, 'CREATE_PO', ?, 'Success')")
+        ->execute([$userId, "Created PO {$poId} with {$lineCount} lines — {$currency} " . number_format($totalAmount, 2)]);
+
+    // Notify
+    require_once __DIR__ . '/../../includes/notifications.php';
+    addNotification($pdo, "📋 PO Created", "Purchase Order {$poId} for {$supplierRow['supplier_name']} — {$currency} " . number_format($totalAmount, 2) . " ({$lineCount} items).", 'procurement');
+
+    $pdo->commit();
+
+    echo json_encode([
+        'success' => true,
+        'po_id' => $poId,
+        'total' => $totalAmount,
+        'lines' => $lineCount,
+    ]);
+
 } catch (Exception $e) {
-    error_log("Create PO error: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['error' => 'Database error occurred.']);
+    $pdo->rollBack();
+    error_log("Create PO Error: " . $e->getMessage());
+    echo json_encode(['error' => $e->getMessage()]);
 }
