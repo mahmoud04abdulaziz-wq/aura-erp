@@ -22,10 +22,14 @@ $navModules = [
 
     // ─── Production ───
     '__production' => [null, 'PRODUCTION', null],
+    'prod_orders' => ['fa-solid fa-clipboard-list', 'Production Orders', 'manufacturing'],
     'mix_batches' => ['fa-solid fa-industry', 'Mix Batches', 'manufacturing'],
+    'prod_mixing' => ['fa-solid fa-blender', 'Mixing Station', 'manufacturing'],
+    'prod_curing' => ['fa-solid fa-hourglass-half', 'Curing Station', 'manufacturing'],
+    'prod_finish' => ['fa-solid fa-flag-checkered', 'Finish Production', 'manufacturing'],
     'mix_recipes' => ['fa-solid fa-flask', 'Mix Recipes', 'manufacturing'],
     'prod_material_requests' => ['fa-solid fa-boxes-packing', 'Request Materials', 'manufacturing'],
-    'kanban' => ['fa-solid fa-table-columns', 'Active Batches', 'manufacturing'],
+    'kanban' => ['fa-solid fa-table-columns', 'Order Pipeline', 'manufacturing'],
 
     // ─── Procurement ───
     '__procurement' => [null, 'PROCUREMENT', null],

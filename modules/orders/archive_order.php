@@ -25,7 +25,7 @@ try {
         if (empty($soId)) {
             throw new Exception('Order ID required.');
         }
-        $stmt = $pdo->prepare("UPDATE sales_orders SET order_status = 'Archived' WHERE so_id = ? AND order_status IN ('Delivered', 'Completed')");
+        $stmt = $pdo->prepare("UPDATE sales_orders SET order_status = 'Archived' WHERE so_id = ? AND order_status = 'Delivered'");
         $stmt->execute([$soId]);
 
         if ($stmt->rowCount() > 0) {

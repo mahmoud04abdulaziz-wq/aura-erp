@@ -220,7 +220,7 @@ try {
 
             // Update linked sales order
             if (!empty($batch['so_id'])) {
-                $pdo->prepare("UPDATE sales_orders SET order_status = 'Completed' WHERE so_id = ?")->execute([$batch['so_id']]);
+                $pdo->prepare("UPDATE sales_orders SET order_status = 'Pending Delivery' WHERE so_id = ?")->execute([$batch['so_id']]);
                 addNotification($pdo, "📦 Order Ready", "Production for {$batch['so_id']} is complete. Ready for delivery.", 'sales');
             }
         }

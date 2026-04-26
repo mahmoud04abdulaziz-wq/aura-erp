@@ -113,7 +113,7 @@ $deliveredOrders = $pdo->query("
                 $statusBadge = match($order['order_status']) {
                     'Pending' => ['bg' => '#dbeafe', 'color' => '#1e40af', 'label' => 'Pending'],
                     'In Production' => ['bg' => '#fef3c7', 'color' => '#92400e', 'label' => 'In Production'],
-                    'Completed' => ['bg' => '#d1fae5', 'color' => '#065f46', 'label' => 'Completed'],
+                    'Pending Delivery' => ['bg' => '#d1fae5', 'color' => '#065f46', 'label' => 'Pending Delivery'],
                     default => ['bg' => '#e2e8f0', 'color' => '#475569', 'label' => $order['order_status'] ?: 'New']
                 };
                 ?>

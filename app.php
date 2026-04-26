@@ -21,10 +21,14 @@ $viewMap = [
     'order_archive' => ['Order Archive', 'crm', __DIR__ . '/views/order_archive.php'],
 
     // Production
+    'prod_orders' => ['Production Orders', 'manufacturing', __DIR__ . '/views/prod_orders.php'],
     'mix_batches' => ['Mix Batches', 'manufacturing', __DIR__ . '/views/mix_batches.php'],
+    'prod_mixing' => ['Mixing Station', 'manufacturing', __DIR__ . '/views/prod_mixing.php'],
+    'prod_curing' => ['Curing Station', 'manufacturing', __DIR__ . '/views/prod_curing.php'],
+    'prod_finish' => ['Finish Production', 'manufacturing', __DIR__ . '/views/prod_finish.php'],
     'mix_recipes' => ['Mix Recipes', 'manufacturing', __DIR__ . '/views/mix_recipes.php'],
     'prod_material_requests' => ['Request Materials', 'manufacturing', __DIR__ . '/views/prod_material_requests.php'],
-    'kanban' => ['Active Batches', 'manufacturing', __DIR__ . '/views/kanban.php'],
+    'kanban' => ['Order Pipeline', 'manufacturing', __DIR__ . '/views/kanban.php'],
     'production' => ['Production', 'manufacturing', __DIR__ . '/views/production.php'],
 
     // Procurement

@@ -34,7 +34,7 @@ try {
 $badgeMap = [
     'Pending' => 'pending',
     'In Production' => 'blue',
-    'Completed' => 'orange',
+    'Pending Delivery' => 'orange',
     'Delivered' => 'completed',
 ];
 ?>
@@ -167,7 +167,7 @@ $badgeMap = [
                                             <button class="dropdown-item" onclick="changeOrderStatus('<?= htmlspecialchars($order['so_id']) ?>', 'In Production')">
                                                 <i class="fa-solid fa-industry"></i> Send to Production
                                             </button>
-                                        <?php elseif ($order['order_status'] === 'Completed'): ?>
+                                        <?php elseif ($order['order_status'] === 'Pending Delivery'): ?>
                                             <button class="dropdown-item" onclick="changeOrderStatus('<?= htmlspecialchars($order['so_id']) ?>', 'Delivered')">
                                                 <i class="fa-solid fa-truck-fast"></i> Deliver Order
                                             </button>
