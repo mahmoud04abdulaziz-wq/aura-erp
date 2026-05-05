@@ -44,6 +44,7 @@ $viewMap = [
     // Management
     'inventory' => ['Inventory', 'inventory', __DIR__ . '/views/inventory.php'],
     'hr' => ['HR', 'hr', __DIR__ . '/views/hr.php'],
+    'hr_careers' => ['Careers Pipeline', 'hr', __DIR__ . '/views/hr_careers.php'],
     'accounting' => ['Accounting', 'finance', __DIR__ . '/views/accounting.php'],
     'invoices' => ['Invoices', 'finance', __DIR__ . '/views/invoices.php'],
     'bi' => ['Business Intelligence', 'dashboard', __DIR__ . '/views/business_intelligence.php'],

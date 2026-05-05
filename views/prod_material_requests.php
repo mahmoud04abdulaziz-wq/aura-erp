@@ -102,7 +102,7 @@ $myRequests = $pdo->query("
                                     <td style="font-family: monospace; font-weight: 600;">#<?= $req['request_id'] ?></td>
                                     <td style="font-weight: 600;"><?= htmlspecialchars($req['item_name']) ?></td>
                                     <td><?= number_format($req['quantity_requested'], 0) ?> <?= $req['base_uom'] ?></td>
-                                    <td>$<?= number_format($req['unit_price'], 2) ?></td>
+                                    <td><?= number_format($req['unit_price'], 2) ?> JOD</td>
                                     <td>
                                         <?php 
                                         $urgencyColors = ['Normal' => 'completed', 'High' => 'in-progress', 'Critical' => 'pending'];

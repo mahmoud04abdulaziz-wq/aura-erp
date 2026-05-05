@@ -54,7 +54,7 @@ $allRawMaterials = $pdo->query("SELECT item_id, item_name FROM item_master WHERE
                                 <?php foreach ($items as $item): ?>
                                     <span style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: <?= $item['is_preferred'] ? '#dcfce7' : '#f1f5f9' ?>; color: <?= $item['is_preferred'] ? '#166534' : '#475569' ?>; border-radius: 4px; font-weight: 600;">
                                         <?= htmlspecialchars($item['item_name']) ?>
-                                        <?php if ($item['unit_price']): ?> · $<?= number_format($item['unit_price'], 2) ?><?php endif; ?>
+                                        <?php if ($item['unit_price']): ?> · <?= number_format($item['unit_price'], 2) ?> JOD<?php endif; ?>
                                         <?= $item['is_preferred'] ? ' ★' : '' ?>
                                     </span>
                                 <?php endforeach; ?>

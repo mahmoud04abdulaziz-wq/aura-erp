@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $targetQty = $_POST['target_quantity'] ?? 1;
     $operatorId = $_POST['operator_user_id'] ?? $_SESSION['user_id'];
     $prodDate = $_POST['production_date'] ?? date('Y-m-d');
+    $soId = $_POST['so_id'] ?? null;
 
     // Support legacy item_id-based creation too
     $itemId = $_POST['item_id'] ?? '';
@@ -48,10 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $stmt = $pdo->prepare("
             INSERT INTO production_orders 
-            (production_id, item_id, recipe_id, machine_id, production_date, target_quantity, operator_user_id, status, qa_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'Planned', 'Pending')
+            (production_id, item_id, recipe_id, so_id, machine_id, production_date, target_quantity, operator_user_id, status, qa_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Planned', 'Pending')
         ");
-        $stmt->execute([$productionId, $itemId, $recipeId ?: null, $machineId, $prodDate, $targetQty, $operatorId]);
+        $stmt->execute([$productionId, $itemId, $recipeId ?: null, $soId, $machineId, $prodDate, $targetQty, $operatorId]);
 
         // Log
         $pdo->prepare("INSERT INTO system_logs (user_id, action_type, description, status) VALUES (?, 'CREATE_BATCH', ?, 'Success')")

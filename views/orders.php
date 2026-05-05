@@ -155,7 +155,7 @@ $badgeMap = [
                             <td><span style="font-weight:700; color:var(--accent-primary);"><?= htmlspecialchars($order['so_id']) ?></span></td>
                             <td><span style="font-weight:500;"><?= htmlspecialchars($order['company_name']) ?></span></td>
                             <td><?= date('M d, Y', strtotime($order['order_date'])) ?></td>
-                            <td><span style="font-family:monospace; font-weight:600;">$<?= number_format($order['total_price'] ?? 0, 2) ?></span></td>
+                            <td><span style="font-family:monospace; font-weight:600;"><?= number_format($order['total_price'] ?? 0, 2) ?> JOD</span></td>
                             <td><span class="badge <?= $badgeMap[$order['order_status']] ?? 'pending' ?>"><?= htmlspecialchars($order['order_status']) ?></span></td>
                             <td>
                                 <div class="action-menu-container">

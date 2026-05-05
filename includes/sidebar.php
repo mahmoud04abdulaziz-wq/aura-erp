@@ -45,6 +45,7 @@ $navModules = [
     '__other' => [null, 'MANAGEMENT', null],
     'inventory' => ['fa-solid fa-warehouse', 'Inventory', 'inventory'],
     'hr' => ['fa-solid fa-users', 'HR', 'hr'],
+    'hr_careers' => ['fa-solid fa-briefcase', 'Careers Pipeline', 'hr'],
     'accounting' => ['fa-solid fa-file-invoice-dollar', 'Accounting', 'finance'],
     'invoices' => ['fa-solid fa-file-invoice', 'Invoices', 'finance'],
     'bi' => ['fa-solid fa-brain', 'Business Intelligence', 'dashboard'],

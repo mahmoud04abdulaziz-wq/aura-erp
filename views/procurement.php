@@ -59,7 +59,7 @@ try {
         <div class="stat-icon success"><i class="fa-solid fa-coins"></i></div>
         <div class="stat-info">
             <h3>Total Spend</h3>
-            <p class="stat-value" style="font-size:1.5rem;">$<?= number_format($totalSpend, 2) ?></p>
+            <p class="stat-value" style="font-size:1.5rem;"><?= number_format($totalSpend, 2) ?> JOD</p>
         </div>
     </div>
     <div class="stat-card">

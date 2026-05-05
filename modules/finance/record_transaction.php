@@ -62,7 +62,7 @@ try {
 
     // Push to Live Notification Feed
     require_once __DIR__ . '/../../includes/notifications.php';
-    $message = "{$transaction_type} of \${$amount} recorded for: {$category}";
+    $message = "{$transaction_type} of {$amount} JOD recorded for: {$category}";
     addNotification($pdo, "Financial Activity", $message, 'finance');
 
     echo json_encode(['success' => true, 'message' => "Transaction $txn_id recorded.", 'transaction_id' => $txn_id]);

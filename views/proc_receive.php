@@ -68,7 +68,7 @@ if (!empty($pendingPOs)) {
                                 <?php foreach ($lines as $line): ?>
                                     <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding: 0.25rem 0; border-bottom: 1px solid #e2e8f0;">
                                         <span style="font-weight: 600;"><?= htmlspecialchars($line['item_name']) ?></span>
-                                        <span style="color: var(--text-secondary);"><?= number_format($line['quantity'], 1) ?> <?= $line['base_uom'] ?> × $<?= number_format($line['unit_price'], 2) ?></span>
+                                        <span style="color: var(--text-secondary);"><?= number_format($line['quantity'], 1) ?> <?= $line['base_uom'] ?> × <?= number_format($line['unit_price'], 2) ?> JOD</span>
                                     </div>
                                 <?php endforeach; ?>
                             </div>

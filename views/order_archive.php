@@ -48,7 +48,7 @@ $archivedOrders = $pdo->query("
                                 <td style="font-weight: 600; font-family: monospace;"><?= htmlspecialchars($order['so_id']) ?></td>
                                 <td style="font-weight: 600;"><?= htmlspecialchars($order['company_name']) ?></td>
                                 <td style="color: var(--text-secondary);"><?= htmlspecialchars($order['contact_person'] ?? '—') ?></td>
-                                <td style="font-weight: 700; color: var(--success);">$<?= number_format($order['total_price'], 2) ?></td>
+                                <td style="font-weight: 700; color: var(--success);"><?= number_format($order['total_price'], 2) ?> JOD</td>
                                 <td style="color: var(--text-secondary);"><?= htmlspecialchars($order['order_date']) ?></td>
                                 <td><span class="badge gray">Archived</span></td>
                             </tr>

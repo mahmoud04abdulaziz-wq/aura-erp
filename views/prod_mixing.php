@@ -88,7 +88,7 @@ if (!empty($mixingBatches)) {
                             <div style="background: #f8fafc; border-radius: 8px; padding: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
                                 <div>
                                     <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-secondary);">BOM Bill #<?= $bill['bill_id'] ?></span>
-                                    <div style="font-weight: 700; color: var(--accent-primary); font-size: 1.1rem;">$<?= number_format($bill['total_material_cost'], 2) ?></div>
+                                    <div style="font-weight: 700; color: var(--accent-primary); font-size: 1.1rem;"><?= number_format($bill['total_material_cost'], 2) ?> JOD</div>
                                 </div>
                                 <span style="font-size: 0.8rem; color: var(--text-secondary);"><?= $bill['line_count'] ?> materials consumed</span>
                             </div>

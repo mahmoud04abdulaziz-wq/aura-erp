@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lead_action'])) {
 
             // Notification
             require_once __DIR__ . '/../includes/notifications.php';
-            addNotification($pdo, "✅ Lead Accepted", "Web lead '{$cust['company_name']}' converted to Order {$soId} (\${$totalPrice})", 'crm');
+            addNotification($pdo, "✅ Lead Accepted", "Web lead '{$cust['company_name']}' converted to Order {$soId} ({$totalPrice} JOD)", 'crm');
 
         } catch (Exception $e) {
             error_log("Lead accept error: " . $e->getMessage());
@@ -145,14 +145,14 @@ foreach ($webLeads as $lead) {
                                             <span style="font-weight: 600; font-size: 0.9rem;"><?= htmlspecialchars($itm['item_name']) ?></span>
                                             <span style="color: var(--text-secondary); font-size: 0.8rem;"> × <?= $itm['quantity'] ?></span>
                                         </div>
-                                        <span style="font-weight: 700; color: var(--accent-primary);">$<?= number_format($itm['quantity'] * $itm['unit_price'], 2) ?></span>
+                                        <span style="font-weight: 700; color: var(--accent-primary);"><?= number_format($itm['quantity'] * $itm['unit_price'], 2) ?> JOD</span>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
                             <!-- Total -->
                             <div style="display: flex; justify-content: space-between; margin-top: 0.75rem; padding: 0.75rem 0; border-top: 2px solid var(--border-color);">
                                 <span style="font-weight: 700; font-size: 1rem;">Total</span>
-                                <span style="font-weight: 800; font-size: 1.15rem; color: var(--success);">$<?= number_format($totalValue, 2) ?></span>
+                                <span style="font-weight: 800; font-size: 1.15rem; color: var(--success);"><?= number_format($totalValue, 2) ?> JOD</span>
                             </div>
                         <?php else: ?>
                             <!-- Fallback: show text summary -->

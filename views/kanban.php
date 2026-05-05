@@ -99,7 +99,7 @@ function getProgressColor($status) {
                             </div>
                             
                             <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:var(--text-secondary);">
-                                <span>$<?= number_format($order['total_price'] ?? 0, 2) ?></span>
+                                <span><?= number_format($order['total_price'] ?? 0, 2) ?> JOD</span>
                                 <span><?= date('M d', strtotime($order['order_date'])) ?></span>
                             </div>
                             <?php if ($status === 'Delivered'): ?>

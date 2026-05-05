@@ -92,9 +92,9 @@ try {
                                 <tr>
                                     <td><span style="color:var(--text-secondary); font-family:monospace;"><?= htmlspecialchars($item['item_id']) ?></span></td>
                                     <td><strong style="color:var(--text-primary);"><?= htmlspecialchars($item['item_name']) ?></strong></td>
-                                    <td style="font-size:1.1rem; font-weight:700; color:var(--<?= $statusColor ?>);"><?= number_format($stock, 2) ?></td>
+                                    <td style="font-size:1.1rem; font-weight:700; color:var(--<?= $statusColor ?>);"><?= number_format($stock, 3) ?></td>
                                     <td><span class="badge gray"><?= htmlspecialchars($item['base_uom']) ?></span></td>
-                                    <td>$<?= number_format($item['standard_cost'], 2) ?></td>
+                                    <td><?= number_format($item['standard_cost'], 2) ?> JOD</td>
                                     <td><span class="badge <?= $statusColor ?>"><?= $statusText ?></span></td>
                                 </tr>
                             <?php endforeach; ?>
@@ -178,7 +178,7 @@ try {
 
                     <div style="display:flex; gap:1.5rem; margin-bottom:2rem;">
                         <div style="flex:1;">
-                            <label style="display:block; margin-bottom:0.5rem; color:var(--text-secondary); font-size:0.9rem;">Standard Cost ($)</label>
+                            <label style="display:block; margin-bottom:0.5rem; color:var(--text-secondary); font-size:0.9rem;">Standard Cost (JOD)</label>
                             <input type="number" step="0.01" name="standard_cost" value="0.00" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
                         </div>
                         <div style="flex:1;">

@@ -152,6 +152,7 @@ foreach ($cart as $item) {
         <div class="nav-links">
             <a href="<?= BASE_URL ?>/">Home</a>
             <a href="<?= BASE_URL ?>/shop.php">Shop</a>
+            <a href="<?= BASE_URL ?>/careers.php">Careers</a>
             <a href="<?= BASE_URL ?>/cart.php" class="cart-link">
                 <i class="fa-solid fa-bag-shopping"></i> Cart
                 <?php if ($totalItems > 0): ?>
@@ -283,13 +284,13 @@ foreach ($cart as $item) {
                                 <div class="item-name"><?= htmlspecialchars($item['name']) ?></div>
                                 <div class="item-qty">× <?= $item['qty'] ?></div>
                             </div>
-                            <div class="item-total">$<?= number_format($item['qty'] * $item['unit_price'], 2) ?></div>
+                            <div class="item-total"><?= number_format($item['qty'] * $item['unit_price'], 2) ?> JOD</div>
                         </div>
                     <?php endforeach; ?>
 
                     <div class="cart-summary-row total" style="margin-top: 1rem;">
                         <span>Total</span>
-                        <span>$<?= number_format($totalPrice, 2) ?></span>
+                        <span><?= number_format($totalPrice, 2) ?> JOD</span>
                     </div>
 
                     <a href="<?= BASE_URL ?>/cart.php" class="btn-continue" style="margin-top: 1.5rem; display: flex; justify-content: center;">

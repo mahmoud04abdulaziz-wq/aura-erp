@@ -13,8 +13,9 @@ $maxPrice   = trim($_GET['max_price'] ?? '');
 // ── Fetch products ──
 try {
     $sql = "SELECT fg.item_id, fg.item_name, fg.category, fg.stone_measurement,
-                   fg.unit_cost, fg.quantity_in_stock
+                   fg.unit_cost, fg.quantity_in_stock, im.selling_price
             FROM inventory_finished_goods fg
+            LEFT JOIN item_master im ON fg.item_id = im.item_id
             WHERE 1=1";
     $params = [];
 
@@ -76,6 +77,7 @@ function getStoneIcon($name) {
         <div class="nav-links">
             <a href="<?= BASE_URL ?>/">Home</a>
             <a href="<?= BASE_URL ?>/shop.php" style="color: var(--store-accent); font-weight: 600;">Shop</a>
+            <a href="<?= BASE_URL ?>/careers.php">Careers</a>
             <a href="<?= BASE_URL ?>/cart.php" class="cart-link">
                 <i class="fa-solid fa-bag-shopping"></i> Cart
                 <?php if ($cartCount > 0): ?>
@@ -133,7 +135,7 @@ function getStoneIcon($name) {
                 <?php foreach ($products as $prod): ?>
                     <?php
                         $icon = getStoneIcon($prod['item_name']);
-                        $price = (float)($prod['unit_cost'] ?? 0);
+                        $price = (float)(!empty($prod['selling_price']) && $prod['selling_price'] > 0 ? $prod['selling_price'] : ($prod['unit_cost'] ?? 0));
                         $inStock = (int)($prod['quantity_in_stock'] ?? 0);
                     ?>
                     <div class="shop-card">
@@ -150,7 +152,7 @@ function getStoneIcon($name) {
                             <h3><?= htmlspecialchars($prod['item_name']) ?></h3>
                             <p class="card-meta"><?= htmlspecialchars($prod['stone_measurement'] ?? 'Standard Size') ?></p>
                             <div class="card-price">
-                                $<?= number_format($price, 2) ?> <small>/ unit</small>
+                                <?= number_format($price, 2) ?> JOD <small>/ unit</small>
                             </div>
                         </div>
                         <a href="<?= BASE_URL ?>/product-single.php?id=<?= urlencode($prod['item_id']) ?>" class="btn-view-details">

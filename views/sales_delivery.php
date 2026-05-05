@@ -152,7 +152,7 @@ $deliveredOrders = $pdo->query("
                     <div style="padding: 1.25rem 1.5rem;">
                         <div style="display: flex; gap: 1.5rem; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-secondary);">
                             <span><i class="fa-solid fa-calendar"></i> <?= htmlspecialchars($order['order_date']) ?></span>
-                            <span style="font-weight: 700; color: var(--accent-primary); font-size: 1rem;">$<?= number_format($order['total_price'], 2) ?></span>
+                            <span style="font-weight: 700; color: var(--accent-primary); font-size: 1rem;"><?= number_format($order['total_price'], 2) ?> JOD</span>
                         </div>
 
                         <?php if (!empty($detail['lines'])): ?>
@@ -218,7 +218,7 @@ $deliveredOrders = $pdo->query("
                         <tr>
                             <td style="font-weight: 600;"><?= htmlspecialchars($d['so_id']) ?></td>
                             <td><?= htmlspecialchars($d['company_name']) ?></td>
-                            <td style="font-weight: 700; color: var(--success);">$<?= number_format($d['total_price'], 2) ?></td>
+                            <td style="font-weight: 700; color: var(--success);"><?= number_format($d['total_price'], 2) ?> JOD</td>
                             <td style="color: var(--text-secondary);"><?= htmlspecialchars($d['order_date']) ?></td>
                         </tr>
                     <?php endforeach; ?>

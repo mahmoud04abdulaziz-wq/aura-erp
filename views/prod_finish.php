@@ -145,7 +145,7 @@ function getMixOutputs($pdo, $recipeId) {
                             <td style="font-weight: 600;"><?= htmlspecialchars($b['recipe_name'] ?? $b['item_name']) ?></td>
                             <td><?= (int)$b['target_quantity'] ?></td>
                             <td style="font-weight: 700; color: var(--accent-primary);">
-                                <?= $b['total_material_cost'] ? '$' . number_format($b['total_material_cost'], 2) : '—' ?>
+                                <?= $b['total_material_cost'] ? number_format($b['total_material_cost'], 2) . ' JOD' : '—' ?>
                             </td>
                             <td style="color: var(--text-secondary);"><?= $b['production_date'] ? date('M d', strtotime($b['production_date'])) : '—' ?></td>
                             <td><span class="badge completed">Completed</span></td>

@@ -88,7 +88,7 @@ $invoiceBadgeMap = [
                             <td>
                                 <?= $inv['valid_until'] ? date('M d, Y', strtotime($inv['valid_until'])) : '—' ?>
                             </td>
-                            <td><span style="font-family:monospace; font-weight:600;">$<?= number_format($inv['total_amount'] ?? 0, 2) ?></span></td>
+                            <td><span style="font-family:monospace; font-weight:600;"><?= number_format($inv['total_amount'] ?? 0, 2) ?> JOD</span></td>
                             <td><span class="badge <?= $badgeClass ?>"><?= $displayStatus ?></span></td>
                             <td>
                                 <div class="action-menu-container">

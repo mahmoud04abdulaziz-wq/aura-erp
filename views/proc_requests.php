@@ -93,7 +93,7 @@ $pendingIds = array_column($pendingRequests, 'request_id');
                         </div>
                         <div style="display: flex; gap: 1rem; align-items: center; font-size: 0.85rem; color: var(--text-secondary);">
                             <span><strong><?= number_format($req['quantity_requested'], 1) ?></strong> <?= $req['base_uom'] ?></span>
-                            <span>$<?= number_format($req['unit_price'], 2) ?>/unit</span>
+                            <span><?= number_format($req['unit_price'], 2) ?> JOD/unit</span>
                             <div style="display: flex; gap: 0.25rem;">
                                 <select id="supplier-<?= $req['request_id'] ?>" style="padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.8rem;">
                                     <?php foreach ($suppliers as $s): ?>

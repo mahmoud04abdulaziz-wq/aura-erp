@@ -9,10 +9,13 @@
 
 // Fetch all production orders with recipe info
 $batches = $pdo->query("
-    SELECT po.*, im.item_name, r.recipe_name, r.recipe_id as linked_recipe_id
+    SELECT po.*, im.item_name, r.recipe_name, r.recipe_id as linked_recipe_id,
+           so.so_id as linked_so_id, c.company_name as so_company
     FROM production_orders po 
     JOIN item_master im ON po.item_id = im.item_id
     LEFT JOIN recipes r ON po.recipe_id = r.recipe_id
+    LEFT JOIN sales_orders so ON po.so_id = so.so_id
+    LEFT JOIN customers c ON so.customer_id = c.customer_id
     ORDER BY 
         CASE po.status WHEN 'Mixing' THEN 0 WHEN 'Curing' THEN 1 WHEN 'Planned' THEN 2 ELSE 3 END,
         po.created_at DESC
@@ -110,6 +113,19 @@ $stats = [
                         <?php endif; ?>
                     </div>
                 </div>
+
+                <!-- Linked Sales Order (Kanban) -->
+                <?php if (!empty($batch['linked_so_id'])): ?>
+                    <div style="padding: 0 1.25rem 0.75rem;">
+                        <div style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.75rem; border-radius: 6px; background: #eef2ff; border: 1px solid #c7d2fe; font-size: 0.8rem;">
+                            <i class="fa-solid fa-link" style="color: #6366f1;"></i>
+                            <span style="font-weight: 700; color: #4338ca;"><?= htmlspecialchars($batch['linked_so_id']) ?></span>
+                            <?php if (!empty($batch['so_company'])): ?>
+                                <span style="color: #6366f1; opacity: 0.7;">· <?= htmlspecialchars($batch['so_company']) ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Stage Progression Bar -->
                 <div style="padding: 0 1.25rem 0.75rem;">

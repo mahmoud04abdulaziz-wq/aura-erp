@@ -120,7 +120,7 @@ try {
                     <td><span style="font-weight:700; color:var(--accent-primary);"><?= $i + 1 ?></span></td>
                     <td style="font-weight:600;"><?= htmlspecialchars($c['company_name']) ?></td>
                     <td><?= $c['order_count'] ?></td>
-                    <td style="font-weight:700; color:var(--success);">$<?= number_format($c['total_revenue'], 2) ?></td>
+                    <td style="font-weight:700; color:var(--success);"><?= number_format($c['total_revenue'], 2) ?> JOD</td>
                 </tr>
             <?php endforeach; ?>
             <?php if (empty($topCustomers)): ?>

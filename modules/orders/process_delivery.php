@@ -81,19 +81,19 @@ try {
 
     // 6. Notifications
     require_once __DIR__ . '/../../includes/notifications.php';
-    addNotification($pdo, "🚛 Order Delivered", "Sales Order {$soId} for {$order['company_name']} dispatched. Revenue: \${$totalRevenue}", 'sales');
+    addNotification($pdo, "🚛 Order Delivered", "Sales Order {$soId} for {$order['company_name']} dispatched. Revenue: {$totalRevenue} JOD", 'sales');
     addNotification($pdo, "📦 Inventory Dispatched", "Finished goods dispatched for {$soId}.", 'inventory');
-    addNotification($pdo, "💰 Revenue Recorded", "+\${$totalRevenue} from {$order['company_name']} ({$soId}).", 'finance');
+    addNotification($pdo, "💰 Revenue Recorded", "+{$totalRevenue} JOD from {$order['company_name']} ({$soId}).", 'finance');
 
     // 7. System log
     $pdo->prepare("INSERT INTO system_logs (user_id, action_type, description, status) VALUES (?, 'DELIVERY', ?, 'Success')")
-        ->execute([$userId, "Dispatched {$soId} — {$order['company_name']} — \${$totalRevenue}"]);
+        ->execute([$userId, "Dispatched {$soId} — {$order['company_name']} — {$totalRevenue} JOD"]);
 
     $pdo->commit();
 
     echo json_encode([
         'success' => true,
-        'message' => "Order {$soId} delivered! Revenue \${$totalRevenue} recorded.",
+        'message' => "Order {$soId} delivered! Revenue {$totalRevenue} JOD recorded.",
     ]);
 
 } catch (Exception $e) {

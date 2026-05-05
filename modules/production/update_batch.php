@@ -144,8 +144,8 @@ try {
 
             // Notify
             $costStr = number_format($totalBomCost, 2);
-            addNotification($pdo, "🔥 Mixing Started", "{$batchLabel}: Raw materials consumed. BOM cost: \${$costStr}", 'manufacturing');
-            addNotification($pdo, "📊 BOM Bill Generated", "Bill #{$billId} for {$batchLabel} — \${$costStr}. Review in Accounting.", 'finance');
+            addNotification($pdo, "🔥 Mixing Started", "{$batchLabel}: Raw materials consumed. BOM cost: {$costStr} JOD", 'production');
+            addNotification($pdo, "📊 BOM Bill Generated", "Bill #{$billId} for {$batchLabel} — {$costStr} JOD. Review in Accounting.", 'finance');
             addNotification($pdo, "📦 Inventory Deducted", "Materials consumed for {$batchLabel}.", 'inventory');
         }
     }
@@ -215,7 +215,7 @@ try {
 
             // Notify
             $fgList = implode(', ', $fgSummary);
-            addNotification($pdo, "✅ Batch Completed", "{$batchLabel}: {$totalFGProduced} FG produced ({$fgList}).", 'manufacturing');
+            addNotification($pdo, "✅ Batch Completed", "{$batchLabel}: {$totalFGProduced} FG produced ({$fgList}).", 'production');
             addNotification($pdo, "📦 FG Inventory Updated", "Mix outputs credited: {$fgList}", 'inventory');
 
             // Update linked sales order

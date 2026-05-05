@@ -45,21 +45,21 @@ try {
         <div class="stat-icon primary"><i class="fa-solid fa-wallet"></i></div>
         <div class="stat-info">
             <h3>Total Balance</h3>
-            <p class="stat-value" style="font-size:1.5rem;">$<?= number_format($totalBalance, 2) ?></p>
+            <p class="stat-value" style="font-size:1.5rem;"><?= number_format($totalBalance, 2) ?> JOD</p>
         </div>
     </div>
     <div class="stat-card">
         <div class="stat-icon success"><i class="fa-solid fa-arrow-trend-up"></i></div>
         <div class="stat-info">
             <h3>Monthly Income</h3>
-            <p class="stat-value" style="font-size:1.5rem;">$<?= number_format($monthlyIncome, 2) ?></p>
+            <p class="stat-value" style="font-size:1.5rem;"><?= number_format($monthlyIncome, 2) ?> JOD</p>
         </div>
     </div>
     <div class="stat-card">
         <div class="stat-icon warning"><i class="fa-solid fa-arrow-trend-down"></i></div>
         <div class="stat-info">
             <h3>Monthly Expenses</h3>
-            <p class="stat-value" style="font-size:1.5rem;">$<?= number_format($monthlyExpenses, 2) ?></p>
+            <p class="stat-value" style="font-size:1.5rem;"><?= number_format($monthlyExpenses, 2) ?> JOD</p>
         </div>
     </div>
     <div class="stat-card">
@@ -122,7 +122,7 @@ try {
                                     </span></td>
                                 <td>
                                     <span style="font-weight:700; color:<?= $trx['transaction_type'] === 'Income' ? 'var(--success)' : '#ef4444' ?>;">
-                                        <?= $trx['transaction_type'] === 'Income' ? '+' : '-' ?>$<?= number_format($trx['amount'], 2) ?>
+                                        <?= $trx['transaction_type'] === 'Income' ? '+' : '-' ?><?= number_format($trx['amount'], 2) ?> JOD
                                     </span>
                                 </td>
                                 <td>
@@ -246,7 +246,7 @@ try {
 
                 <div style="display:flex; gap:1.5rem; margin-bottom:1.5rem;">
                     <div style="flex:1;">
-                        <label style="display:block; margin-bottom:0.5rem; color:var(--text-secondary); font-size:0.9rem;">Amount ($) *</label>
+                        <label style="display:block; margin-bottom:0.5rem; color:var(--text-secondary); font-size:0.9rem;">Amount (JOD) *</label>
                         <input type="number" step="0.01" min="0.01" name="amount" required placeholder="0.00" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-body); color:var(--text-primary);">
                     </div>
                     <div style="flex:1;">

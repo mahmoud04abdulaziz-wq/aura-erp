@@ -51,7 +51,7 @@ $recentPOs = $pdo->query("
         <div class="stat-card" style="border-left: 4px solid #22c55e;">
             <div class="stat-info">
                 <h3 style="color: var(--text-secondary); font-size: 0.9rem;">Total Spend</h3>
-                <p class="stat-value">$<?= number_format($totalSpend) ?></p>
+                <p class="stat-value"><?= number_format($totalSpend) ?> JOD</p>
             </div>
         </div>
     </div>

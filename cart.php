@@ -68,6 +68,7 @@ foreach ($cart as $item) {
         <div class="nav-links">
             <a href="<?= BASE_URL ?>/">Home</a>
             <a href="<?= BASE_URL ?>/shop.php">Shop</a>
+            <a href="<?= BASE_URL ?>/careers.php">Careers</a>
             <a href="<?= BASE_URL ?>/cart.php" class="cart-link" style="color: var(--store-accent); font-weight: 600;">
                 <i class="fa-solid fa-bag-shopping"></i> Cart
                 <?php if ($totalItems > 0): ?>
@@ -126,12 +127,12 @@ foreach ($cart as $item) {
                                     <?php endif; ?>
                                     <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.2rem;"><?= htmlspecialchars($item['category']) ?> · <?= htmlspecialchars($item['measurement'] ?? '') ?></div>
                                 </td>
-                                <td>$<?= number_format($item['unit_price'], 2) ?></td>
+                                <td><?= number_format($item['unit_price'], 2) ?> JOD</td>
                                 <td>
                                     <input type="number" name="quantities[<?= $idx ?>]" value="<?= $item['qty'] ?>" min="1" 
                                            style="width: 70px; padding: 0.5rem; border: 1.5px solid #e2e8f0; border-radius: 8px; text-align: center; font-weight: 600; font-family: inherit;">
                                 </td>
-                                <td class="cart-subtotal">$<?= number_format($item['qty'] * $item['unit_price'], 2) ?></td>
+                                <td class="cart-subtotal"><?= number_format($item['qty'] * $item['unit_price'], 2) ?> JOD</td>
                                 <td>
                                     <!-- Remove button via separate form -->
                                     <button type="submit" formaction="<?= BASE_URL ?>/cart.php" name="cart_action" value="remove" class="btn-remove" title="Remove item"
@@ -167,11 +168,11 @@ foreach ($cart as $item) {
                     </div>
                     <div class="cart-summary-row">
                         <span>Subtotal</span>
-                        <span>$<?= number_format($totalPrice, 2) ?></span>
+                        <span><?= number_format($totalPrice, 2) ?> JOD</span>
                     </div>
                     <div class="cart-summary-row total">
                         <span>Total</span>
-                        <span>$<?= number_format($totalPrice, 2) ?></span>
+                        <span><?= number_format($totalPrice, 2) ?> JOD</span>
                     </div>
                     <a href="<?= BASE_URL ?>/checkout.php" class="btn-checkout">
                         Proceed to Checkout <i class="fa-solid fa-arrow-right" style="margin-left: 8px;"></i>

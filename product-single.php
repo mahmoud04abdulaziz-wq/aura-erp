@@ -14,7 +14,7 @@ if ($itemId !== '') {
     try {
         $stmt = $pdo->prepare("SELECT fg.item_id, fg.item_name, fg.category, fg.stone_measurement,
                                       fg.unit_cost, fg.quantity_in_stock, fg.warehouse_location,
-                                      im.base_uom
+                                      im.base_uom, im.selling_price
                                FROM inventory_finished_goods fg
                                JOIN item_master im ON fg.item_id = im.item_id
                                WHERE fg.item_id = ?");
@@ -46,11 +46,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     unset($ci);
 
     if (!$found) {
+        $price = (float)(!empty($product['selling_price']) && $product['selling_price'] > 0 ? $product['selling_price'] : ($product['unit_cost'] ?? 0));
         $_SESSION['cart'][] = [
             'item_id'     => $product['item_id'],
             'name'        => $product['item_name'],
             'category'    => $product['category'],
-            'unit_price'  => (float)($product['unit_cost'] ?? 0),
+            'unit_price'  => $price,
             'qty'         => $qty,
             'description' => $desc,
             'measurement' => $product['stone_measurement'] ?? '',
@@ -100,6 +101,7 @@ function getStoneIconSingle($name) {
         <div class="nav-links">
             <a href="<?= BASE_URL ?>/">Home</a>
             <a href="<?= BASE_URL ?>/shop.php">Shop</a>
+            <a href="<?= BASE_URL ?>/careers.php">Careers</a>
             <a href="<?= BASE_URL ?>/cart.php" class="cart-link">
                 <i class="fa-solid fa-bag-shopping"></i> Cart
                 <?php if ($cartCount > 0): ?>
@@ -154,7 +156,8 @@ function getStoneIconSingle($name) {
                     <h1><?= htmlspecialchars($product['item_name']) ?></h1>
                     
                     <div class="single-price">
-                        $<?= number_format((float)($product['unit_cost'] ?? 0), 2) ?> <small>/ <?= htmlspecialchars($product['base_uom'] ?? 'unit') ?></small>
+                        <?php $displayPrice = (float)(!empty($product['selling_price']) && $product['selling_price'] > 0 ? $product['selling_price'] : ($product['unit_cost'] ?? 0)); ?>
+                        <?= number_format($displayPrice, 2) ?> JOD <small>/ <?= htmlspecialchars($product['base_uom'] ?? 'unit') ?></small>
                     </div>
 
                     <div class="single-meta">

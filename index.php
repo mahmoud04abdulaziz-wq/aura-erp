@@ -86,9 +86,9 @@ try {
             MiskStone
         </a>
         <div class="nav-links">
-            <a href="#about">About Us</a>
             <a href="<?= BASE_URL ?>/shop.php">Shop</a>
             <a href="#process">Our Process</a>
+            <a href="<?= BASE_URL ?>/careers.php">Careers</a>
             <?php
                 $hCartCount = 0;
                 if (!empty($_SESSION['cart'])) { foreach ($_SESSION['cart'] as $hci) $hCartCount += $hci['qty']; }

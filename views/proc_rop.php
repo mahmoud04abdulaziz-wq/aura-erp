@@ -2,11 +2,21 @@
 /** MiskStone ERP — ROP Alerts */
 require_once dirname(__DIR__, 1) . '/includes/math_models.php';
 $alerts = calculateReorderPoints($pdo);
+$criticalCount = count(array_filter($alerts, fn($a) => $a['status'] !== 'Safe'));
 ?>
 <div class="dashboard-container">
     <div class="welcome-banner" style="background: linear-gradient(135deg, #1e293b, #334155); color: white; padding: 2rem; border-radius: 16px; margin-bottom: 2rem;">
-        <h1><i class="fa-solid fa-chart-line" style="margin-right: 0.75rem;"></i>ROP Alerts</h1>
-        <p style="opacity: 0.9;">Reorder Point analytics. Formula: (Avg Daily Usage × Lead Time) + Safety Stock</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h1><i class="fa-solid fa-chart-line" style="margin-right: 0.75rem;"></i>ROP Alerts</h1>
+                <p style="opacity: 0.9;">Reorder Point analytics. Formula: (Avg Daily Usage × Lead Time) + Safety Stock</p>
+            </div>
+            <?php if ($criticalCount > 0): ?>
+            <button id="autoReorderBtn" onclick="runAutoReorder()" style="background: linear-gradient(135deg, #f59e0b, #ef4444); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 700; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.3s; box-shadow: 0 4px 15px rgba(245,158,11,0.3);">
+                <i class="fa-solid fa-bolt"></i> Auto-Reorder (<?= $criticalCount ?> items)
+            </button>
+            <?php endif; ?>
+        </div>
     </div>
     <div class="card">
         <div style="overflow-x: auto;">
@@ -47,3 +57,34 @@ $alerts = calculateReorderPoints($pdo);
         </div>
     </div>
 </div>
+
+<script>
+async function runAutoReorder() {
+    const btn = document.getElementById('autoReorderBtn');
+    if (!confirm('Run the Auto-Reorder engine? This will generate Material Requests for all items below their Reorder Point.')) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Scanning...';
+
+    try {
+        const res = await fetch('<?= BASE_URL ?>/modules/procurement/auto_reorder.php', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.success) {
+            let msg = '✅ ' + data.message;
+            if (data.details && data.details.length > 0) {
+                msg += '\n\nGenerated:\n• ' + data.details.join('\n• ');
+            }
+            alert(msg);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (err) {
+        alert('Network error. Please try again.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Auto-Reorder';
+    }
+}
+</script>

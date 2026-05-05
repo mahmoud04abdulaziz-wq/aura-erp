@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $rName = trim($_POST['recipe_name']);
     
     // Insert a draft journal entry for Finance to review
-    $desc = "BOM Cost Estimate Report | Recipe: $rName | Qty: $simQty | Est. Total Cost: $" . number_format($batchCost, 2);
+    $desc = "BOM Cost Estimate Report | Recipe: $rName | Qty: $simQty | Est. Total Cost: " . number_format($batchCost, 2) . " JOD";
     $pdo->prepare("INSERT INTO journal_entries (entry_date, source_module, description, reference_id, recorded_by) VALUES (CURRENT_DATE(), 'Production', ?, ?, ?)")
         ->execute([$desc, 'EST-'.$rId, $_SESSION['user_id'] ?? 1]);
         
@@ -153,11 +153,11 @@ if ($selectedRecipeId) {
             <div style="flex:1; background: #eff6ff; border: 1px solid #bfdbfe; padding: 1.5rem; border-radius: 12px; display:flex; justify-content:space-between; align-items:center;">
                 <div>
                     <span style="font-size:0.85rem; font-weight:600; color:#1e40af; text-transform:uppercase;">Cost Roll-up / Unit</span>
-                    <div style="font-size:1.8rem; font-weight:700; color:#1e3a8a; margin-top:0.25rem;">$<?= number_format($totalUnitMaterialCost, 2) ?></div>
+                    <div style="font-size:1.8rem; font-weight:700; color:#1e3a8a; margin-top:0.25rem;"><?= number_format($totalUnitMaterialCost, 2) ?> JOD</div>
                 </div>
                 <div style="text-align:right;">
                     <span style="font-size:0.85rem; font-weight:600; color:#1e40af; text-transform:uppercase;">Total Material Estimate</span>
-                    <div style="font-size:1.8rem; font-weight:700; color:#1e3a8a; margin-top:0.25rem;">$<?= number_format($totalBatchMaterialCost, 2) ?></div>
+                    <div style="font-size:1.8rem; font-weight:700; color:#1e3a8a; margin-top:0.25rem;"><?= number_format($totalBatchMaterialCost, 2) ?> JOD</div>
                 </div>
             </div>
         </div>
@@ -217,7 +217,7 @@ if ($selectedRecipeId) {
                             <?php endif; ?>
                         </td>
                         <td style="text-align:right; padding-right:1rem; font-weight:600;">
-                            $<?= number_format($row['batch_cost_val'], 2) ?>
+                            <?= number_format($row['batch_cost_val'], 2) ?> JOD
                         </td>
                     </tr>
                     <?php endforeach; ?>

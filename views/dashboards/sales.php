@@ -111,7 +111,7 @@ $salesLedger = $pdo->query("
             <div class="stat-icon success"><i class="fa-solid fa-chart-line"></i></div>
             <div class="stat-info">
                 <h3>Monthly Volume</h3>
-                <p class="stat-value">$<?= number_format($totalSalesMonth) ?></p>
+                <p class="stat-value"><?= number_format($totalSalesMonth) ?> JOD</p>
                 <span class="stat-trend positive">Total Sales Order Value</span>
             </div>
         </div>
@@ -207,7 +207,7 @@ $salesLedger = $pdo->query("
                             </td>
                             <td><?= htmlspecialchars($order['company_name']) ?></td>
                             <td><?= htmlspecialchars($order['order_date']) ?></td>
-                            <td style="font-weight:600; color:var(--accent-primary);">$<?= number_format($order['total_price'], 2) ?></td>
+                            <td style="font-weight:600; color:var(--accent-primary);"><?= number_format($order['total_price'], 2) ?> JOD</td>
                             <td><a href="<?= BASE_URL ?>/app.php?view=kanban" class="btn-text" style="text-decoration:none;">Track Progress</a></td>
                         </tr>
                         <?php endforeach; ?>
@@ -231,7 +231,7 @@ $salesLedger = $pdo->query("
                     <?php foreach ($topCustomers as $c): ?>
                         <tr>
                             <td style="font-weight:600;"><?= htmlspecialchars($c['company_name']) ?></td>
-                            <td style="font-weight:700; color:var(--success);">$<?= number_format($c['total_revenue'], 2) ?></td>
+                            <td style="font-weight:700; color:var(--success);"><?= number_format($c['total_revenue'], 2) ?> JOD</td>
                         </tr>
                     <?php endforeach; ?>
                     <?php if (empty($topCustomers)): ?>
@@ -254,7 +254,7 @@ $salesLedger = $pdo->query("
                         <tr>
                             <td style="font-size:0.85rem;"><?= date('M d, Y', strtotime($entry['transaction_date'])) ?></td>
                             <td style="font-family:monospace; font-size:0.85rem;"><?= htmlspecialchars($entry['reference_id'] ?? '—') ?></td>
-                            <td style="font-weight:700; color:var(--success);">+$<?= number_format($entry['amount'], 2) ?></td>
+                            <td style="font-weight:700; color:var(--success);">+<?= number_format($entry['amount'], 2) ?> JOD</td>
                         </tr>
                     <?php endforeach; ?>
                     <?php if (empty($salesLedger)): ?>
