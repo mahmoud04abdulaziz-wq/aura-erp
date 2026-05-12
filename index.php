@@ -103,7 +103,7 @@ try {
     <section class="hero" style="background-image: url('<?= BASE_URL ?>/images/hero_generated.png');">
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <p class="hero-arabic"><?= t('hero_arabic_name') ?></p>
+            <p class="hero-arabic"><?= $currentLang === 'ar' ? t('hero_arabic_name') : 'MiskStone' ?></p>
             <h1><?= t('hero_title') ?></h1>
             <p class="hero-desc"><?= t('hero_desc') ?></p>
             <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">

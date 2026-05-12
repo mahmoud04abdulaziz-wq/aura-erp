@@ -4,6 +4,7 @@
  * Dynamic sidebar with collapsible parent-child nav groups.
  * Only shows items the user has permission to access.
  */
+require_once __DIR__ . '/../config/lang.php';
 
 $activeView = $_GET['view'] ?? 'dashboard';
 
@@ -11,47 +12,47 @@ $activeView = $_GET['view'] ?? 'dashboard';
 // Format: 'viewId' => [icon, label, permission]
 // Group headers: '__group_name' => [null, 'Group Label', null]
 $navModules = [
-    'dashboard' => ['fa-solid fa-chart-line', 'Dashboard', 'dashboard'],
+    'dashboard' => ['fa-solid fa-chart-line', t('sidebar_dashboard'), 'dashboard'],
 
     // ─── Sales ───
-    '__sales' => [null, 'SALES', null],
-    'sales_inbox' => ['fa-solid fa-inbox', 'Order Inbox', 'crm'],
-    'orders' => ['fa-solid fa-layer-group', 'Orders', 'crm'],
-    'sales_delivery' => ['fa-solid fa-truck-ramp-box', 'Delivery Dispatch', 'crm'],
-    'order_archive' => ['fa-solid fa-box-archive', 'Archive', 'crm'],
+    '__sales' => [null, t('sidebar_sales'), null],
+    'sales_inbox' => ['fa-solid fa-inbox', t('sidebar_order_inbox'), 'crm'],
+    'orders' => ['fa-solid fa-layer-group', t('sidebar_orders'), 'crm'],
+    'sales_delivery' => ['fa-solid fa-truck-ramp-box', t('sidebar_delivery_dispatch'), 'crm'],
+    'order_archive' => ['fa-solid fa-box-archive', t('sidebar_archive'), 'crm'],
 
     // ─── Production ───
-    '__production' => [null, 'PRODUCTION', null],
-    'prod_orders' => ['fa-solid fa-clipboard-list', 'Production Orders', 'manufacturing'],
-    'mix_batches' => ['fa-solid fa-industry', 'Mix Batches', 'manufacturing'],
-    'prod_mixing' => ['fa-solid fa-blender', 'Mixing Station', 'manufacturing'],
-    'prod_curing' => ['fa-solid fa-hourglass-half', 'Curing Station', 'manufacturing'],
-    'prod_finish' => ['fa-solid fa-flag-checkered', 'Finish Production', 'manufacturing'],
-    'mix_recipes' => ['fa-solid fa-flask', 'Mix Recipes', 'manufacturing'],
-    'prod_material_requests' => ['fa-solid fa-boxes-packing', 'Request Materials', 'manufacturing'],
-    'kanban' => ['fa-solid fa-table-columns', 'Order Pipeline', 'manufacturing'],
+    '__production' => [null, t('sidebar_production'), null],
+    'prod_orders' => ['fa-solid fa-clipboard-list', t('sidebar_production_orders'), 'manufacturing'],
+    'mix_batches' => ['fa-solid fa-industry', t('sidebar_mix_batches'), 'manufacturing'],
+    'prod_mixing' => ['fa-solid fa-blender', t('sidebar_mixing_station'), 'manufacturing'],
+    'prod_curing' => ['fa-solid fa-hourglass-half', t('sidebar_curing_station'), 'manufacturing'],
+    'prod_finish' => ['fa-solid fa-flag-checkered', t('sidebar_finish_production'), 'manufacturing'],
+    'mix_recipes' => ['fa-solid fa-flask', t('sidebar_mix_recipes'), 'manufacturing'],
+    'prod_material_requests' => ['fa-solid fa-boxes-packing', t('sidebar_request_materials'), 'manufacturing'],
+    'kanban' => ['fa-solid fa-table-columns', t('sidebar_order_pipeline'), 'manufacturing'],
 
     // ─── Procurement ───
-    '__procurement' => [null, 'PROCUREMENT', null],
-    'proc_home' => ['fa-solid fa-truck-fast', 'Procurement Home', 'procurement'],
-    'proc_suppliers' => ['fa-solid fa-building', 'Suppliers', 'procurement'],
-    'proc_create' => ['fa-solid fa-file-circle-plus', 'Create PO', 'procurement'],
-    'proc_track' => ['fa-solid fa-list-check', 'Track Orders', 'procurement'],
-    'proc_receive' => ['fa-solid fa-box-open', 'Receive Orders', 'procurement'],
-    'proc_requests' => ['fa-solid fa-envelope-open-text', 'Incoming Requests', 'procurement'],
-    'proc_rop' => ['fa-solid fa-chart-line', 'ROP Alerts', 'procurement'],
+    '__procurement' => [null, t('sidebar_procurement_group'), null],
+    'proc_home' => ['fa-solid fa-truck-fast', t('sidebar_procurement'), 'procurement'],
+    'proc_suppliers' => ['fa-solid fa-building', t('sidebar_suppliers'), 'procurement'],
+    'proc_create' => ['fa-solid fa-file-circle-plus', t('sidebar_create_po'), 'procurement'],
+    'proc_track' => ['fa-solid fa-list-check', t('sidebar_track_orders'), 'procurement'],
+    'proc_receive' => ['fa-solid fa-box-open', t('sidebar_receive_orders'), 'procurement'],
+    'proc_requests' => ['fa-solid fa-envelope-open-text', t('sidebar_incoming_requests'), 'procurement'],
+    'proc_rop' => ['fa-solid fa-chart-line', t('sidebar_rop_alerts'), 'procurement'],
 
     // ─── Other ───
-    '__other' => [null, 'MANAGEMENT', null],
-    'inventory' => ['fa-solid fa-warehouse', 'Inventory', 'inventory'],
-    'hr' => ['fa-solid fa-users', 'HR', 'hr'],
-    'hr_careers' => ['fa-solid fa-briefcase', 'Careers Pipeline', 'hr'],
-    'accounting' => ['fa-solid fa-file-invoice-dollar', 'Accounting', 'finance'],
-    'invoices' => ['fa-solid fa-file-invoice', 'Invoices', 'finance'],
-    'bi' => ['fa-solid fa-brain', 'Business Intelligence', 'dashboard'],
-    'analytics' => ['fa-solid fa-calculator', 'Math Models', 'dashboard'],
-    'reports' => ['fa-solid fa-print', 'Reports', 'dashboard'],
-    'admin' => ['fa-solid fa-user-shield', 'User Accounts', 'admin'],
+    '__other' => [null, t('sidebar_management'), null],
+    'inventory' => ['fa-solid fa-warehouse', t('sidebar_inventory'), 'inventory'],
+    'hr' => ['fa-solid fa-users', t('sidebar_hr'), 'hr'],
+    'hr_careers' => ['fa-solid fa-briefcase', t('sidebar_careers'), 'hr'],
+    'accounting' => ['fa-solid fa-file-invoice-dollar', t('sidebar_accounting'), 'finance'],
+    'invoices' => ['fa-solid fa-file-invoice', t('sidebar_invoices'), 'finance'],
+    'bi' => ['fa-solid fa-brain', t('sidebar_bi'), 'dashboard'],
+    'analytics' => ['fa-solid fa-calculator', t('sidebar_math_models'), 'dashboard'],
+    'reports' => ['fa-solid fa-print', t('sidebar_reports'), 'dashboard'],
+    'admin' => ['fa-solid fa-user-shield', t('sidebar_user_accounts'), 'admin'],
 ];
 ?>
 <aside class="sidebar" id="sidebar">
@@ -99,6 +100,6 @@ $navModules = [
     </nav>
 
     <div class="sidebar-footer">
-        <a href="<?= BASE_URL ?>/app.php?view=settings"><i class="fa-solid fa-gear"></i> <span>Settings</span></a>
+        <a href="<?= BASE_URL ?>/app.php?view=settings"><i class="fa-solid fa-gear"></i> <span><?= t('settings') ?></span></a>
     </div>
 </aside>

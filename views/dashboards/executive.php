@@ -139,13 +139,13 @@ $categories = $pdo->query("SELECT DISTINCT category FROM finance_ledger WHERE ca
         </div>
     </div>
 
-    <!-- CEO Module Navigation -->
+    <!-- CEO System Modules -->
     <div class="card" style="margin-top: 1.5rem;">
-        <div class="card-header"><h3><i class="fa-solid fa-grip" style="margin-right: 0.5rem; color: var(--accent-primary);"></i>Department Dashboards</h3></div>
+        <div class="card-header"><h3><i class="fa-solid fa-grip" style="margin-right: 0.5rem; color: var(--accent-primary);"></i>System Modules</h3></div>
         <div style="padding: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
 
             <!-- Sales Module -->
-            <a href="<?= BASE_URL ?>/views/dashboard.php?dept=sales" class="module-box" style="--box-accent: #10b981; text-decoration: none; color: inherit;">
+            <a href="<?= BASE_URL ?>/app.php?view=dashboard&dept=sales" class="module-box" style="--box-accent: #10b981; text-decoration: none; color: inherit;">
                 <div class="module-box-icon" style="background: rgba(16,185,129,0.1); color: #10b981;">
                     <i class="fa-solid fa-chart-line"></i>
                 </div>
@@ -157,7 +157,7 @@ $categories = $pdo->query("SELECT DISTINCT category FROM finance_ledger WHERE ca
             </a>
 
             <!-- Production Module -->
-            <a href="<?= BASE_URL ?>/views/dashboard.php?dept=production" class="module-box" style="--box-accent: #8b5cf6; text-decoration: none; color: inherit;">
+            <a href="<?= BASE_URL ?>/app.php?view=dashboard&dept=production" class="module-box" style="--box-accent: #8b5cf6; text-decoration: none; color: inherit;">
                 <div class="module-box-icon" style="background: rgba(139,92,246,0.1); color: #8b5cf6;">
                     <i class="fa-solid fa-industry"></i>
                 </div>
@@ -169,7 +169,7 @@ $categories = $pdo->query("SELECT DISTINCT category FROM finance_ledger WHERE ca
             </a>
 
             <!-- Procurement Module -->
-            <a href="<?= BASE_URL ?>/views/dashboard.php?dept=procurement" class="module-box" style="--box-accent: #f59e0b; text-decoration: none; color: inherit;">
+            <a href="<?= BASE_URL ?>/app.php?view=dashboard&dept=procurement" class="module-box" style="--box-accent: #f59e0b; text-decoration: none; color: inherit;">
                 <div class="module-box-icon" style="background: rgba(245,158,11,0.1); color: #f59e0b;">
                     <i class="fa-solid fa-truck-field"></i>
                 </div>
@@ -181,7 +181,7 @@ $categories = $pdo->query("SELECT DISTINCT category FROM finance_ledger WHERE ca
             </a>
 
             <!-- HR Module -->
-            <a href="<?= BASE_URL ?>/views/dashboard.php?dept=hr" class="module-box" style="--box-accent: #ec4899; text-decoration: none; color: inherit;">
+            <a href="<?= BASE_URL ?>/app.php?view=dashboard&dept=hr" class="module-box" style="--box-accent: #ec4899; text-decoration: none; color: inherit;">
                 <div class="module-box-icon" style="background: rgba(236,72,153,0.1); color: #ec4899;">
                     <i class="fa-solid fa-users"></i>
                 </div>
@@ -193,7 +193,7 @@ $categories = $pdo->query("SELECT DISTINCT category FROM finance_ledger WHERE ca
             </a>
 
             <!-- BI Module -->
-            <a href="<?= BASE_URL ?>/views/business_intelligence.php" class="module-box" style="--box-accent: #06b6d4; text-decoration: none; color: inherit;">
+            <a href="<?= BASE_URL ?>/app.php?view=bi" class="module-box" style="--box-accent: #06b6d4; text-decoration: none; color: inherit;">
                 <div class="module-box-icon" style="background: rgba(6,182,212,0.1); color: #06b6d4;">
                     <i class="fa-solid fa-chart-pie"></i>
                 </div>
@@ -336,10 +336,32 @@ $categories = $pdo->query("SELECT DISTINCT category FROM finance_ledger WHERE ca
 
     function getFilters() {
         const active = document.querySelector('.period-btn.active');
+        const period = active ? active.dataset.val : 'monthly';
+        let from = document.getElementById('filterFrom').value;
+        let to = document.getElementById('filterTo').value;
+
+        // If no manual date range set, auto-compute from period
+        if (!from && !to) {
+            const now = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            to = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+            
+            if (period === 'daily') {
+                from = to;
+            } else if (period === 'weekly') {
+                const d = new Date(now); d.setDate(d.getDate() - 6);
+                from = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+            } else if (period === 'monthly') {
+                from = `${now.getFullYear()}-${pad(now.getMonth()+1)}-01`;
+            } else if (period === 'yearly') {
+                from = `${now.getFullYear()}-01-01`;
+            }
+        }
+
         return {
-            period: active ? active.dataset.val : 'monthly',
-            from: document.getElementById('filterFrom').value,
-            to: document.getElementById('filterTo').value,
+            period,
+            from,
+            to,
             min_amt: document.getElementById('filterMinAmt').value,
             max_amt: document.getElementById('filterMaxAmt').value,
             type: document.getElementById('filterType').value,

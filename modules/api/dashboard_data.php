@@ -81,13 +81,26 @@ if ($category !== '') { $kpiWhere[] = "category = ?"; $kpiParams[] = $category; 
 
 $kpiWhereStr = count($kpiWhere) > 0 ? 'AND ' . implode(' AND ', $kpiWhere) : '';
 
-$stmt = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM finance_ledger WHERE transaction_type = 'Income' $kpiWhereStr");
-$stmt->execute($kpiParams);
-$totalIncome = $stmt->fetchColumn();
+// If type filter is set to a specific type, only count that type
+if ($type === 'Income') {
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM finance_ledger WHERE transaction_type = 'Income' $kpiWhereStr");
+    $stmt->execute($kpiParams);
+    $totalIncome = $stmt->fetchColumn();
+    $totalExpenses = 0;
+} elseif ($type === 'Expense') {
+    $totalIncome = 0;
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM finance_ledger WHERE transaction_type = 'Expense' $kpiWhereStr");
+    $stmt->execute($kpiParams);
+    $totalExpenses = $stmt->fetchColumn();
+} else {
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM finance_ledger WHERE transaction_type = 'Income' $kpiWhereStr");
+    $stmt->execute($kpiParams);
+    $totalIncome = $stmt->fetchColumn();
 
-$stmt = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM finance_ledger WHERE transaction_type = 'Expense' $kpiWhereStr");
-$stmt->execute($kpiParams);
-$totalExpenses = $stmt->fetchColumn();
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM finance_ledger WHERE transaction_type = 'Expense' $kpiWhereStr");
+    $stmt->execute($kpiParams);
+    $totalExpenses = $stmt->fetchColumn();
+}
 
 // === 3. Transactions list (with amount + type + category filters) ===
 $txWhere = [];

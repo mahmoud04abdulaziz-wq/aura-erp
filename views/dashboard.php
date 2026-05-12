@@ -36,7 +36,7 @@ echo '<div class="view-section active" style="display:block;">';
 // Show back button if CEO is viewing another department
 if ($isCEO && $deptOverride && $deptOverride !== 'executive') {
     echo '<div style="margin-bottom: 1rem;">';
-    echo '<a href="' . BASE_URL . '/views/dashboard.php" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 8px; text-decoration: none; color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; transition: 0.2s;" onmouseover="this.style.borderColor=\'var(--accent-primary)\';this.style.color=\'var(--accent-primary)\'" onmouseout="this.style.borderColor=\'var(--border-primary)\';this.style.color=\'var(--text-secondary)\'">';
+    echo '<a href="' . BASE_URL . '/app.php?view=dashboard" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 8px; text-decoration: none; color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; transition: 0.2s;">';
     echo '<i class="fa-solid fa-arrow-left"></i> Back to Executive Dashboard';
     echo '</a></div>';
 }
