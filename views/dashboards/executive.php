@@ -139,18 +139,83 @@ $categories = $pdo->query("SELECT DISTINCT category FROM finance_ledger WHERE ca
         </div>
     </div>
 
-    <!-- Financial Breakdown -->
+    <!-- CEO Module Navigation -->
     <div class="card" style="margin-top: 1.5rem;">
-        <div class="card-header"><h3>Cash Flow Transactions</h3></div>
-        <div style="overflow-x: auto;">
-            <table class="data-table" id="txnTable">
-                <thead>
-                    <tr><th>Date</th><th>ID</th><th>Category</th><th>Type</th><th>Amount</th></tr>
-                </thead>
-                <tbody id="txnBody">
-                    <tr><td colspan="5" style="text-align:center; color:var(--text-secondary); padding: 2rem;">Loading...</td></tr>
-                </tbody>
-            </table>
+        <div class="card-header"><h3><i class="fa-solid fa-grip" style="margin-right: 0.5rem; color: var(--accent-primary);"></i>Department Dashboards</h3></div>
+        <div style="padding: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+
+            <!-- Sales Module -->
+            <a href="<?= BASE_URL ?>/views/dashboard.php?dept=sales" class="module-box" style="--box-accent: #10b981; text-decoration: none; color: inherit;">
+                <div class="module-box-icon" style="background: rgba(16,185,129,0.1); color: #10b981;">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <div class="module-box-info">
+                    <h4>Sales & Orders</h4>
+                    <p>Order inbox, pipeline, delivery dispatch, customer management & revenue tracking</p>
+                </div>
+                <i class="fa-solid fa-arrow-right module-box-arrow"></i>
+            </a>
+
+            <!-- Production Module -->
+            <a href="<?= BASE_URL ?>/views/dashboard.php?dept=production" class="module-box" style="--box-accent: #8b5cf6; text-decoration: none; color: inherit;">
+                <div class="module-box-icon" style="background: rgba(139,92,246,0.1); color: #8b5cf6;">
+                    <i class="fa-solid fa-industry"></i>
+                </div>
+                <div class="module-box-info">
+                    <h4>Production</h4>
+                    <p>Production orders, mix batches, mixing & curing stations, recipes & quality control</p>
+                </div>
+                <i class="fa-solid fa-arrow-right module-box-arrow"></i>
+            </a>
+
+            <!-- Procurement Module -->
+            <a href="<?= BASE_URL ?>/views/dashboard.php?dept=procurement" class="module-box" style="--box-accent: #f59e0b; text-decoration: none; color: inherit;">
+                <div class="module-box-icon" style="background: rgba(245,158,11,0.1); color: #f59e0b;">
+                    <i class="fa-solid fa-truck-field"></i>
+                </div>
+                <div class="module-box-info">
+                    <h4>Procurement</h4>
+                    <p>Purchase orders, supplier management, material requests & inventory restocking</p>
+                </div>
+                <i class="fa-solid fa-arrow-right module-box-arrow"></i>
+            </a>
+
+            <!-- HR Module -->
+            <a href="<?= BASE_URL ?>/views/dashboard.php?dept=hr" class="module-box" style="--box-accent: #ec4899; text-decoration: none; color: inherit;">
+                <div class="module-box-icon" style="background: rgba(236,72,153,0.1); color: #ec4899;">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <div class="module-box-info">
+                    <h4>Human Resources</h4>
+                    <p>Employee records, job applications, career postings & workforce management</p>
+                </div>
+                <i class="fa-solid fa-arrow-right module-box-arrow"></i>
+            </a>
+
+            <!-- BI Module -->
+            <a href="<?= BASE_URL ?>/views/business_intelligence.php" class="module-box" style="--box-accent: #06b6d4; text-decoration: none; color: inherit;">
+                <div class="module-box-icon" style="background: rgba(6,182,212,0.1); color: #06b6d4;">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <div class="module-box-info">
+                    <h4>Business Intelligence</h4>
+                    <p>Cross-department analytics, trend analysis, performance reports & KPI dashboards</p>
+                </div>
+                <i class="fa-solid fa-arrow-right module-box-arrow"></i>
+            </a>
+
+            <!-- Storefront -->
+            <a href="<?= BASE_URL ?>/" class="module-box" style="--box-accent: #6366f1; text-decoration: none; color: inherit;" target="_blank">
+                <div class="module-box-icon" style="background: rgba(99,102,241,0.1); color: #6366f1;">
+                    <i class="fa-solid fa-store"></i>
+                </div>
+                <div class="module-box-info">
+                    <h4>Storefront</h4>
+                    <p>Public website, product catalog, customer orders & online presence management</p>
+                </div>
+                <i class="fa-solid fa-arrow-up-right-from-square module-box-arrow"></i>
+            </a>
+
         </div>
     </div>
 </div>
@@ -167,6 +232,67 @@ $categories = $pdo->query("SELECT DISTINCT category FROM finance_ledger WHERE ca
 @media (max-width: 900px) {
     div[style*="grid-template-columns: 2fr 1fr"] { grid-template-columns: 1fr !important; }
     div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+}
+
+/* Module Navigation Boxes */
+.module-box {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 14px;
+    border: 1px solid var(--border-primary);
+    background: var(--bg-primary);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+.module-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--box-accent, var(--accent-primary));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+}
+.module-box:hover::before { transform: scaleX(1); }
+.module-box:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    border-color: var(--box-accent, var(--accent-primary));
+}
+.module-box-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+.module-box-info { flex: 1; }
+.module-box-info h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.module-box-info p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+.module-box-arrow {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    transition: transform 0.3s, color 0.3s;
+    flex-shrink: 0;
+}
+.module-box:hover .module-box-arrow {
+    transform: translateX(4px);
+    color: var(--box-accent, var(--accent-primary));
 }
 </style>
 
@@ -256,22 +382,6 @@ $categories = $pdo->query("SELECT DISTINCT category FROM finance_ledger WHERE ca
             pipeChart.data.datasets[0].data = d.orderPipeline.map(p => parseInt(p.cnt));
             pipeChart.data.datasets[0].backgroundColor = d.orderPipeline.map(p => pipeColors[p.order_status] || chartColors.slate);
             pipeChart.update();
-
-            // Transactions table
-            const tbody = document.getElementById('txnBody');
-            if (d.transactions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-secondary); padding: 2rem;">No transactions match your filters.</td></tr>';
-            } else {
-                tbody.innerHTML = d.transactions.map(t => `
-                    <tr>
-                        <td>${t.transaction_date}</td>
-                        <td style="font-weight:600;">${t.transaction_id}</td>
-                        <td>${t.category || '—'}</td>
-                        <td><span class="badge ${t.transaction_type === 'Income' ? 'completed' : 'pending'}">${t.transaction_type}</span></td>
-                        <td style="font-weight:600; color:${t.transaction_type === 'Income' ? '#10b981' : '#ef4444'}">${t.transaction_type === 'Income' ? '+' : '-'}${parseFloat(t.amount).toLocaleString(undefined, {minimumFractionDigits:2})} JOD</td>
-                    </tr>
-                `).join('');
-            }
         } catch (e) {
             console.error('Dashboard fetch error:', e);
         }

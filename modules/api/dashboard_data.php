@@ -69,9 +69,16 @@ $stmt = $pdo->prepare($trendSQL);
 $stmt->execute($trendParams);
 $revenueTrend = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// === 2. KPI cards (filtered by date range) ===
-$kpiWhere = $trendWhere;
-$kpiParams = $trendParams;
+// === 2. KPI cards (filtered by ALL filter criteria) ===
+$kpiWhere = [];
+$kpiParams = [];
+
+if ($from) { $kpiWhere[] = "transaction_date >= ?"; $kpiParams[] = $from; }
+if ($to)   { $kpiWhere[] = "transaction_date <= ?"; $kpiParams[] = $to; }
+if ($minAmt !== null) { $kpiWhere[] = "amount >= ?"; $kpiParams[] = $minAmt; }
+if ($maxAmt !== null) { $kpiWhere[] = "amount <= ?"; $kpiParams[] = $maxAmt; }
+if ($category !== '') { $kpiWhere[] = "category = ?"; $kpiParams[] = $category; }
+
 $kpiWhereStr = count($kpiWhere) > 0 ? 'AND ' . implode(' AND ', $kpiWhere) : '';
 
 $stmt = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM finance_ledger WHERE transaction_type = 'Income' $kpiWhereStr");
