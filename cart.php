@@ -6,6 +6,12 @@
 require_once __DIR__ . '/config/app.php';
 require_once __DIR__ . '/config/db_connect.php';
 
+// Require login to use cart
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ' . BASE_URL . '/modules/auth/login.php');
+    exit;
+}
+
 // ── Handle cart actions ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['cart_action'] ?? '';
@@ -61,25 +67,7 @@ foreach ($cart as $item) {
 <body>
 
     <!-- Navigation -->
-    <nav class="store-nav">
-        <a href="<?= BASE_URL ?>/" class="store-brand">
-            <i class="fa-solid fa-gem"></i> MiskStone
-        </a>
-        <div class="nav-links">
-            <a href="<?= BASE_URL ?>/">Home</a>
-            <a href="<?= BASE_URL ?>/shop.php">Shop</a>
-            <a href="<?= BASE_URL ?>/careers.php">Careers</a>
-            <a href="<?= BASE_URL ?>/cart.php" class="cart-link" style="color: var(--store-accent); font-weight: 600;">
-                <i class="fa-solid fa-bag-shopping"></i> Cart
-                <?php if ($totalItems > 0): ?>
-                    <span class="cart-badge"><?= $totalItems ?></span>
-                <?php endif; ?>
-            </a>
-            <a href="<?= BASE_URL ?>/modules/auth/login.php" class="btn-login-header">
-                <i class="fa-solid fa-lock" style="margin-right: 6px;"></i> Employee Login
-            </a>
-        </div>
-    </nav>
+    <?php include __DIR__ . '/includes/store_nav.php'; ?>
 
     <div class="store-page">
 

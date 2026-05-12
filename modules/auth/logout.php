@@ -6,6 +6,7 @@ require_once dirname(__DIR__, 2) . '/config/app.php';
 require_once dirname(__DIR__, 2) . '/config/db_connect.php';
 
 // Log logout action before destroying session
+$isCustomer = ($_SESSION['role_name'] ?? '') === 'Customer';
 if (isset($_SESSION['user_id'])) {
     try {
         $stmt = $pdo->prepare(
@@ -32,5 +33,9 @@ if (ini_get('session.use_cookies')) {
 }
 session_destroy();
 
-header('Location: ' . BASE_URL . '/modules/auth/login.php');
+if ($isCustomer) {
+    header('Location: ' . BASE_URL . '/');
+} else {
+    header('Location: ' . BASE_URL . '/modules/auth/employee_login.php');
+}
 exit;

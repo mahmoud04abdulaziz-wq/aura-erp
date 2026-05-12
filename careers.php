@@ -196,25 +196,7 @@ if (!empty($_SESSION['cart'])) { foreach ($_SESSION['cart'] as $hci) $hCartCount
 <body>
 
     <!-- Navigation -->
-    <nav class="store-nav">
-        <a href="<?= BASE_URL ?>/" class="store-brand">
-            <i class="fa-solid fa-gem"></i> MiskStone
-        </a>
-        <div class="nav-links">
-            <a href="<?= BASE_URL ?>/">Home</a>
-            <a href="<?= BASE_URL ?>/shop.php">Shop</a>
-            <a href="<?= BASE_URL ?>/careers.php" style="color: #6366f1; font-weight: 600;">Careers</a>
-            <a href="<?= BASE_URL ?>/cart.php" class="cart-link">
-                <i class="fa-solid fa-bag-shopping"></i> Cart
-                <?php if ($hCartCount > 0): ?>
-                    <span class="cart-badge"><?= $hCartCount ?></span>
-                <?php endif; ?>
-            </a>
-            <a href="<?= BASE_URL ?>/modules/auth/login.php" class="btn-login-header">
-                <i class="fa-solid fa-lock" style="margin-right: 6px;"></i> Employee Login
-            </a>
-        </div>
-    </nav>
+    <?php include __DIR__ . '/includes/store_nav.php'; ?>
 
     <!-- Hero Section -->
     <section class="careers-hero">
@@ -268,9 +250,15 @@ if (!empty($_SESSION['cart'])) { foreach ($_SESSION['cart'] as $hci) $hCartCount
 
                     <div class="posting-footer">
                         <span class="posting-date"><i class="fa-regular fa-calendar"></i> Posted <?= date('M d, Y', strtotime($post['posted_date'])) ?></span>
-                        <button class="btn-apply" onclick="openApplyModal(<?= $post['posting_id'] ?>, '<?= addslashes(htmlspecialchars($post['title'])) ?>')">
-                            <i class="fa-solid fa-paper-plane"></i> Apply Now
-                        </button>
+                        <?php if (isset($_SESSION['user_id'])): ?>
+                            <button class="btn-apply" onclick="openApplyModal(<?= $post['posting_id'] ?>, '<?= addslashes(htmlspecialchars($post['title'])) ?>')">
+                                <i class="fa-solid fa-paper-plane"></i> Apply Now
+                            </button>
+                        <?php else: ?>
+                            <a href="<?= BASE_URL ?>/modules/auth/login.php" class="btn-apply" style="display:inline-block; text-decoration:none; text-align:center;">
+                                <i class="fa-solid fa-right-to-bracket"></i> Login to Apply
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>

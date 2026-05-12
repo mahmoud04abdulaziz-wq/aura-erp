@@ -92,7 +92,10 @@ try {
         foreach ($candidates as $cand) {
             $outputPerRun = (float)$cand['output_quantity'];
             $runsNeeded   = ($outputPerRun > 0) ? (int)ceil($orderQty / $outputPerRun) : 1;
-            $curingHours  = $runsNeeded * (int)$cand['curing_time_hours'];
+            
+            // Assume 5 parallel molds/stations in the factory so curing happens concurrently
+            $parallelCapacity = 5;
+            $curingHours  = ceil($runsNeeded / $parallelCapacity) * (int)$cand['curing_time_hours'];
 
             // Calculate material cost for this recipe
             $ingStmt = $pdo->prepare("

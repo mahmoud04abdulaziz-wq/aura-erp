@@ -16,7 +16,12 @@ require_once dirname(__DIR__, 2) . '/config/db_connect.php';
 function requireLogin(): void
 {
     if (!isset($_SESSION['user_id'])) {
-        header('Location: ' . BASE_URL . '/modules/auth/login.php');
+        header('Location: ' . BASE_URL . '/modules/auth/employee_login.php');
+        exit;
+    }
+    // Block customer accounts from ERP backend
+    if (($_SESSION['role_name'] ?? '') === 'Customer') {
+        header('Location: ' . BASE_URL . '/shop.php');
         exit;
     }
 }

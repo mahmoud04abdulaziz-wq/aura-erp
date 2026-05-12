@@ -16,6 +16,7 @@ $batches = $pdo->query("
     LEFT JOIN recipes r ON po.recipe_id = r.recipe_id
     LEFT JOIN sales_orders so ON po.so_id = so.so_id
     LEFT JOIN customers c ON so.customer_id = c.customer_id
+    WHERE po.status != 'Archived'
     ORDER BY 
         CASE po.status WHEN 'Mixing' THEN 0 WHEN 'Curing' THEN 1 WHEN 'Planned' THEN 2 ELSE 3 END,
         po.created_at DESC

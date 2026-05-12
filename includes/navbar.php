@@ -67,6 +67,20 @@
                     </div>
                 </div>
             </div>
+            <?php
+                require_once __DIR__ . '/../config/lang.php';
+                $erpLangTarget = ($currentLang === 'en') ? 'ar' : 'en';
+                $erpLangLabel = ($currentLang === 'en') ? 'AR' : 'EN';
+                $erpLangUrl = '?lang=' . $erpLangTarget;
+                if (!empty($_SERVER['QUERY_STRING'])) {
+                    $erpParams = $_GET;
+                    $erpParams['lang'] = $erpLangTarget;
+                    $erpLangUrl = '?' . http_build_query($erpParams);
+                }
+            ?>
+            <a href="<?= htmlspecialchars($erpLangUrl) ?>" class="icon-btn" title="Switch to <?= $erpLangTarget === 'ar' ? 'Arabic' : 'English' ?>" style="text-decoration: none; font-weight: 700; font-size: 0.75rem; letter-spacing: 0.5px;">
+                <i class="fa-solid fa-globe" style="margin-right: 2px;"></i> <?= $erpLangLabel ?>
+            </a>
             <button class="icon-btn"><i class="fa-regular fa-envelope"></i></button>
         </div>
     </div>

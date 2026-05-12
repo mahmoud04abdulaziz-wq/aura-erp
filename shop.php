@@ -10,10 +10,38 @@ require_once __DIR__ . '/config/db_connect.php';
 $searchName = trim($_GET['search'] ?? '');
 $maxPrice   = trim($_GET['max_price'] ?? '');
 
+// ── Pagination variables ──
+$limit = 12; // Products per page
+$page  = max(1, intval($_GET['page'] ?? 1));
+$offset = ($page - 1) * $limit;
+
+// ── Fetch total products count for pagination ──
+try {
+    $countSql = "SELECT COUNT(*) FROM inventory_finished_goods fg WHERE 1=1";
+    $countParams = [];
+
+    if ($searchName !== '') {
+        $countSql .= " AND fg.item_name LIKE ?";
+        $countParams[] = '%' . $searchName . '%';
+    }
+    if ($maxPrice !== '' && is_numeric($maxPrice)) {
+        $countSql .= " AND fg.unit_cost <= ?";
+        $countParams[] = (float) $maxPrice;
+    }
+    
+    $stmtCount = $pdo->prepare($countSql);
+    $stmtCount->execute($countParams);
+    $totalProducts = $stmtCount->fetchColumn();
+    $totalPages = ceil($totalProducts / $limit);
+} catch (PDOException $e) {
+    $totalProducts = 0;
+    $totalPages = 1;
+}
+
 // ── Fetch products ──
 try {
     $sql = "SELECT fg.item_id, fg.item_name, fg.category, fg.stone_measurement,
-                   fg.unit_cost, fg.quantity_in_stock, im.selling_price
+                   fg.unit_cost, fg.quantity_in_stock, fg.image_path, im.selling_price
             FROM inventory_finished_goods fg
             LEFT JOIN item_master im ON fg.item_id = im.item_id
             WHERE 1=1";
@@ -27,7 +55,7 @@ try {
         $sql .= " AND fg.unit_cost <= ?";
         $params[] = (float) $maxPrice;
     }
-    $sql .= " ORDER BY fg.item_name ASC";
+    $sql .= " ORDER BY fg.item_name ASC LIMIT " . intval($limit) . " OFFSET " . intval($offset);
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -55,7 +83,7 @@ function getStoneIcon($name) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= $currentLang ?? 'en' ?>" dir="<?= ($currentLang ?? 'en') === 'ar' ? 'rtl' : 'ltr' ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -70,66 +98,48 @@ function getStoneIcon($name) {
 <body>
 
     <!-- Navigation -->
-    <nav class="store-nav">
-        <a href="<?= BASE_URL ?>/" class="store-brand">
-            <i class="fa-solid fa-gem"></i> MiskStone
-        </a>
-        <div class="nav-links">
-            <a href="<?= BASE_URL ?>/">Home</a>
-            <a href="<?= BASE_URL ?>/shop.php" style="color: var(--store-accent); font-weight: 600;">Shop</a>
-            <a href="<?= BASE_URL ?>/careers.php">Careers</a>
-            <a href="<?= BASE_URL ?>/cart.php" class="cart-link">
-                <i class="fa-solid fa-bag-shopping"></i> Cart
-                <?php if ($cartCount > 0): ?>
-                    <span class="cart-badge"><?= $cartCount ?></span>
-                <?php endif; ?>
-            </a>
-            <a href="<?= BASE_URL ?>/modules/auth/login.php" class="btn-login-header">
-                <i class="fa-solid fa-lock" style="margin-right: 6px;"></i> Employee Login
-            </a>
-        </div>
-    </nav>
+    <?php include __DIR__ . '/includes/store_nav.php'; ?>
 
     <div class="store-page">
 
         <!-- Breadcrumb -->
         <div class="breadcrumb">
-            <a href="<?= BASE_URL ?>/">Home</a>
+            <a href="<?= BASE_URL ?>/"><?= t('home') ?></a>
             <span>/</span>
-            <span>Shop</span>
+            <span><?= t('shop') ?></span>
         </div>
 
-        <h1 class="section-title" style="margin-bottom: 2rem;">Browse Available Products</h1>
+        <h1 class="section-title" style="margin-bottom: 2rem;"><?= t('browse_products') ?></h1>
 
         <!-- Filter Bar -->
         <form method="GET" class="filter-bar" id="shopFilterForm">
             <div class="filter-group" style="flex: 2;">
-                <label for="filter-search">Search</label>
-                <input type="text" id="filter-search" name="search" placeholder="Search products by name..." value="<?= htmlspecialchars($searchName) ?>">
+                <label for="filter-search"><?= t('search') ?></label>
+                <input type="text" id="filter-search" name="search" placeholder="<?= t('search_placeholder') ?>" value="<?= htmlspecialchars($searchName) ?>">
             </div>
             <div class="filter-group" style="flex: 1;">
-                <label for="filter-max-price">Max Price (per unit)</label>
+                <label for="filter-max-price"><?= t('max_price') ?></label>
                 <input type="number" id="filter-max-price" name="max_price" placeholder="e.g. 50" min="0" step="0.01" value="<?= htmlspecialchars($maxPrice) ?>">
             </div>
             <div class="filter-actions">
                 <button type="submit" class="btn-filter primary">
-                    <i class="fa-solid fa-magnifying-glass" style="margin-right: 5px;"></i> Apply Filters
+                    <i class="fa-solid fa-magnifying-glass" style="margin-right: 5px;"></i> <?= t('apply_filters') ?>
                 </button>
                 <a href="<?= BASE_URL ?>/shop.php" class="btn-filter secondary" style="text-decoration:none;">
-                    <i class="fa-solid fa-xmark" style="margin-right: 4px;"></i> Clear
+                    <i class="fa-solid fa-xmark" style="margin-right: 4px;"></i> <?= t('clear') ?>
                 </a>
             </div>
         </form>
 
         <!-- Results Count -->
-        <p class="results-count">Found <strong><?= count($products) ?></strong> product<?= count($products) !== 1 ? 's' : '' ?></p>
+        <p class="results-count"><?= t('found') ?> <strong><?= count($products) ?></strong> <?= count($products) !== 1 ? t('products_word') : t('product_word') ?></p>
 
         <!-- Product Grid -->
         <div class="shop-grid">
             <?php if (empty($products)): ?>
                 <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: #94a3b8;">
                     <i class="fa-solid fa-box-open" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.4;"></i>
-                    <p>No products match your filters. Try adjusting your search.</p>
+                    <p><?= t('no_filter_results') ?></p>
                 </div>
             <?php else: ?>
                 <?php foreach ($products as $prod): ?>
@@ -140,41 +150,52 @@ function getStoneIcon($name) {
                     ?>
                     <div class="shop-card">
                         <div class="shop-card-header">
-                            <i class="fa-solid <?= $icon ?> card-icon"></i>
-                            <?php if ($inStock > 0): ?>
-                                <span class="card-badge"><i class="fa-solid fa-check" style="margin-right: 3px;"></i> In Stock</span>
+                            <?php if (!empty($prod['image_path'])): ?>
+                                <img src="<?= BASE_URL ?>/<?= htmlspecialchars($prod['image_path']) ?>" alt="<?= htmlspecialchars($prod['item_name']) ?>" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; border-radius: 20px 20px 0 0;">
                             <?php else: ?>
-                                <span class="card-badge" style="background: rgba(220, 38, 38, 0.1); color: #dc2626;"><i class="fa-solid fa-xmark" style="margin-right: 3px;"></i> Out of Stock</span>
+                                <i class="fa-solid <?= $icon ?> card-icon"></i>
+                            <?php endif; ?>
+                            <?php if ($inStock > 0): ?>
+                                <span class="card-badge"><i class="fa-solid fa-check" style="margin-right: 3px;"></i> <?= t('in_stock') ?></span>
+                            <?php else: ?>
+                                <span class="card-badge" style="background: rgba(220, 38, 38, 0.1); color: #dc2626;"><i class="fa-solid fa-xmark" style="margin-right: 3px;"></i> <?= t('out_of_stock') ?></span>
                             <?php endif; ?>
                         </div>
                         <div class="shop-card-body">
                             <div class="card-cat"><?= htmlspecialchars($prod['category']) ?></div>
                             <h3><?= htmlspecialchars($prod['item_name']) ?></h3>
-                            <p class="card-meta"><?= htmlspecialchars($prod['stone_measurement'] ?? 'Standard Size') ?></p>
+                            <p class="card-meta"><?= htmlspecialchars($prod['stone_measurement'] ?? t('standard_size')) ?></p>
                             <div class="card-price">
-                                <?= number_format($price, 2) ?> JOD <small>/ unit</small>
+                                <?= number_format($price, 2) ?> JOD <small><?= t('per_unit') ?></small>
                             </div>
                         </div>
                         <a href="<?= BASE_URL ?>/product-single.php?id=<?= urlencode($prod['item_id']) ?>" class="btn-view-details">
-                            View Details
+                            <?= t('view_details') ?>
                         </a>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
 
+        <?php if ($totalPages > 1): ?>
+        <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem; margin-top: 3rem;">
+            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                <?php 
+                    $queryArgs = $_GET;
+                    $queryArgs['page'] = $i;
+                    $pageUrl = BASE_URL . '/shop.php?' . http_build_query($queryArgs);
+                ?>
+                <a href="<?= htmlspecialchars($pageUrl) ?>" style="padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600; <?php if ($i == $page) echo 'background: var(--store-accent); color: white;'; else echo 'background: #fff; color: var(--store-primary); border: 1px solid #e2e8f0;'; ?>">
+                    <?= $i ?>
+                </a>
+            <?php endfor; ?>
+        </div>
+        <?php endif; ?>
+
     </div>
 
     <!-- Footer -->
-    <footer style="background: #0f172a; color: #94a3b8; padding: 3rem 2rem; text-align: center;">
-        <div style="max-width: 1200px; margin: auto;">
-            <div style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 0.5rem;">
-                <i class="fa-solid fa-gem" style="margin-right: 8px; color: #6366f1;"></i> MiskStone
-            </div>
-            <p style="margin-bottom: 0.5rem;">مسك للحجر الصناعي والديكور</p>
-            <p style="font-size: 0.8rem; margin-top: 1rem; opacity: 0.6;">&copy; <?= date('Y') ?> MiskStone. Powered by AURA ERP.</p>
-        </div>
-    </footer>
+    <?php include __DIR__ . '/includes/store_footer.php'; ?>
 
 </body>
 </html>

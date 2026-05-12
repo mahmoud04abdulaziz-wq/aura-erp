@@ -6,6 +6,12 @@
 require_once __DIR__ . '/config/app.php';
 require_once __DIR__ . '/config/db_connect.php';
 
+// Require login to checkout
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ' . BASE_URL . '/modules/auth/login.php');
+    exit;
+}
+
 $cart = $_SESSION['cart'] ?? [];
 $orderPlaced = false;
 $errorMsg = '';
@@ -45,6 +51,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $orderSummary .= implode("\n", $orderLines);
                 $orderSummary .= "\n---\nTotal: $" . number_format($grandTotal, 2);
                 $orderSummary .= "\nPayment: " . $paymentMethod;
+                if ($paymentMethod === 'Bank Transfer') {
+                    $bankName = trim($_POST['bank_name'] ?? '');
+                    $bankIban = trim($_POST['bank_iban'] ?? '');
+                    $bankSwift = trim($_POST['bank_swift'] ?? '');
+                    if ($bankName) $orderSummary .= "\nBank: " . $bankName;
+                    if ($bankIban) $orderSummary .= "\nAccount/IBAN: " . $bankIban;
+                    if ($bankSwift) $orderSummary .= "\nSwift/Ref: " . $bankSwift;
+                }
                 if ($deliveryAddr) $orderSummary .= "\nDelivery: " . $deliveryAddr;
                 if ($projectNotes) $orderSummary .= "\nProject Notes: " . $projectNotes;
 
@@ -145,25 +159,7 @@ foreach ($cart as $item) {
 <body>
 
     <!-- Navigation -->
-    <nav class="store-nav">
-        <a href="<?= BASE_URL ?>/" class="store-brand">
-            <i class="fa-solid fa-gem"></i> MiskStone
-        </a>
-        <div class="nav-links">
-            <a href="<?= BASE_URL ?>/">Home</a>
-            <a href="<?= BASE_URL ?>/shop.php">Shop</a>
-            <a href="<?= BASE_URL ?>/careers.php">Careers</a>
-            <a href="<?= BASE_URL ?>/cart.php" class="cart-link">
-                <i class="fa-solid fa-bag-shopping"></i> Cart
-                <?php if ($totalItems > 0): ?>
-                    <span class="cart-badge"><?= $totalItems ?></span>
-                <?php endif; ?>
-            </a>
-            <a href="<?= BASE_URL ?>/modules/auth/login.php" class="btn-login-header">
-                <i class="fa-solid fa-lock" style="margin-right: 6px;"></i> Employee Login
-            </a>
-        </div>
-    </nav>
+    <?php include __DIR__ . '/includes/store_nav.php'; ?>
 
     <div class="store-page">
 
@@ -255,13 +251,44 @@ foreach ($cart as $item) {
 
                         <div class="form-group">
                             <label>Preferred Payment Method</label>
-                            <select name="payment_method" style="width: 100%; padding: 0.8rem 1rem; border: 1.5px solid #e2e8f0; border-radius: 10px; font-family: inherit; font-size: 0.95rem; background: #fff; color: var(--store-primary);">
+                            <select id="paymentMethodSelect" name="payment_method" onchange="toggleBankFields()" style="width: 100%; padding: 0.8rem 1rem; border: 1.5px solid #e2e8f0; border-radius: 10px; font-family: inherit; font-size: 0.95rem; background: #fff; color: var(--store-primary);">
                                 <option value="Bank Transfer">Bank Transfer</option>
                                 <option value="Credit Card">Credit Card</option>
                                 <option value="Cash on Delivery">Cash on Delivery</option>
                                 <option value="Letter of Credit (L/C)">Letter of Credit (L/C)</option>
                             </select>
                         </div>
+                        
+                        <div id="bankDetailsGroup" style="background: #f8fafc; padding: 1.5rem; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 1.5rem;">
+                            <h4 style="margin: 0 0 1rem 0; color: var(--store-primary); font-size: 0.95rem;"><i class="fa-solid fa-building-columns" style="margin-right: 6px;"></i> Bank Transfer Information</h4>
+                            
+                            <div class="form-row">
+                                <div class="form-group" style="margin-bottom: 0.75rem;">
+                                    <label style="font-size: 0.85rem;">Bank Name</label>
+                                    <input type="text" name="bank_name" placeholder="Your Bank Name">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.75rem;">
+                                    <label style="font-size: 0.85rem;">Account Number / IBAN</label>
+                                    <input type="text" name="bank_iban" placeholder="JO00 ...">
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.85rem;">Transfer Reference / Swift Code</label>
+                                <input type="text" name="bank_swift" placeholder="Optional reference">
+                            </div>
+                        </div>
+
+                        <script>
+                            function toggleBankFields() {
+                                const select = document.getElementById('paymentMethodSelect');
+                                const bankGroup = document.getElementById('bankDetailsGroup');
+                                if (select.value === 'Bank Transfer') {
+                                    bankGroup.style.display = 'block';
+                                } else {
+                                    bankGroup.style.display = 'none';
+                                }
+                            }
+                        </script>
 
                         <div class="form-group">
                             <label>Additional Project Notes</label>

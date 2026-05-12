@@ -13,6 +13,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['success' => false, 'error' => 'You must be logged in to apply.']);
+    exit;
+}
+
 $postingId   = intval($_POST['posting_id'] ?? 0);
 $fullName    = trim($_POST['full_name'] ?? '');
 $email       = trim($_POST['email'] ?? '');

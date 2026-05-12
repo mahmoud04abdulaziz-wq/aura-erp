@@ -13,7 +13,7 @@ $product = null;
 if ($itemId !== '') {
     try {
         $stmt = $pdo->prepare("SELECT fg.item_id, fg.item_name, fg.category, fg.stone_measurement,
-                                      fg.unit_cost, fg.quantity_in_stock, fg.warehouse_location,
+                                      fg.unit_cost, fg.quantity_in_stock, fg.warehouse_location, fg.image_path,
                                       im.base_uom, im.selling_price
                                FROM inventory_finished_goods fg
                                JOIN item_master im ON fg.item_id = im.item_id
@@ -27,7 +27,14 @@ if ($itemId !== '') {
 
 // ── Handle Add to Cart ──
 $addedMsg = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_to_cart' && $product) {
+$isLoggedIn = isset($_SESSION['user_id']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
+    if (!$isLoggedIn) {
+        // Redirect to login, then back here
+        header('Location: ' . BASE_URL . '/modules/auth/login.php');
+        exit;
+    }
+    if ($product) {
     $qty = max(1, intval($_POST['quantity'] ?? 1));
     $desc = trim($_POST['custom_description'] ?? '');
 
@@ -59,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     $addedMsg = htmlspecialchars($product['item_name']) . ' × ' . $qty . ' added to your cart!';
+    }
 }
 
 // Cart count for badge
@@ -80,7 +88,7 @@ function getStoneIconSingle($name) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= $currentLang ?? 'en' ?>" dir="<?= ($currentLang ?? 'en') === 'ar' ? 'rtl' : 'ltr' ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -94,44 +102,26 @@ function getStoneIconSingle($name) {
 <body>
 
     <!-- Navigation -->
-    <nav class="store-nav">
-        <a href="<?= BASE_URL ?>/" class="store-brand">
-            <i class="fa-solid fa-gem"></i> MiskStone
-        </a>
-        <div class="nav-links">
-            <a href="<?= BASE_URL ?>/">Home</a>
-            <a href="<?= BASE_URL ?>/shop.php">Shop</a>
-            <a href="<?= BASE_URL ?>/careers.php">Careers</a>
-            <a href="<?= BASE_URL ?>/cart.php" class="cart-link">
-                <i class="fa-solid fa-bag-shopping"></i> Cart
-                <?php if ($cartCount > 0): ?>
-                    <span class="cart-badge"><?= $cartCount ?></span>
-                <?php endif; ?>
-            </a>
-            <a href="<?= BASE_URL ?>/modules/auth/login.php" class="btn-login-header">
-                <i class="fa-solid fa-lock" style="margin-right: 6px;"></i> Employee Login
-            </a>
-        </div>
-    </nav>
+    <?php include __DIR__ . '/includes/store_nav.php'; ?>
 
     <div class="store-page">
 
         <!-- Breadcrumb -->
         <div class="breadcrumb">
-            <a href="<?= BASE_URL ?>/">Home</a>
+            <a href="<?= BASE_URL ?>/"><?= t('home') ?></a>
             <span>/</span>
-            <a href="<?= BASE_URL ?>/shop.php">Shop</a>
+            <a href="<?= BASE_URL ?>/shop.php"><?= t('shop') ?></a>
             <span>/</span>
-            <span><?= $product ? htmlspecialchars($product['item_name']) : 'Not Found' ?></span>
+            <span><?= $product ? htmlspecialchars($product['item_name']) : t('product_not_found') ?></span>
         </div>
 
         <?php if (!$product): ?>
             <div class="cart-empty">
                 <i class="fa-solid fa-cube"></i>
-                <h2>Product Not Found</h2>
-                <p>The product you're looking for doesn't exist or has been removed.</p>
+                <h2><?= t('product_not_found') ?></h2>
+                <p><?= t('product_not_found_desc') ?></p>
                 <a href="<?= BASE_URL ?>/shop.php" class="btn-continue" style="margin-top: 1.5rem;">
-                    <i class="fa-solid fa-arrow-left"></i> Back to Shop
+                    <i class="fa-solid fa-arrow-left"></i> <?= t('back_to_shop') ?>
                 </a>
             </div>
         <?php else: ?>
@@ -139,7 +129,7 @@ function getStoneIconSingle($name) {
             <?php if ($addedMsg): ?>
                 <div class="alert-success" style="max-width: 700px; margin: 0 auto 2rem;">
                     <i class="fa-solid fa-check-circle" style="margin-right: 8px;"></i> <?= $addedMsg ?>
-                    <a href="<?= BASE_URL ?>/cart.php" style="margin-left: 12px; color: #166534; font-weight: 600;">View Cart →</a>
+                    <a href="<?= BASE_URL ?>/cart.php" style="margin-left: 12px; color: #166534; font-weight: 600;"><?= t('view_cart') ?> →</a>
                 </div>
             <?php endif; ?>
 
@@ -147,7 +137,11 @@ function getStoneIconSingle($name) {
 
                 <!-- Product Image Area -->
                 <div class="single-product-image">
-                    <i class="fa-solid <?= getStoneIconSingle($product['item_name']) ?>"></i>
+                    <?php if (!empty($product['image_path'])): ?>
+                        <img src="<?= BASE_URL ?>/<?= htmlspecialchars($product['image_path']) ?>" alt="<?= htmlspecialchars($product['item_name']) ?>" style="width: 100%; height: 100%; object-fit: cover; border-radius: 24px;">
+                    <?php else: ?>
+                        <i class="fa-solid <?= getStoneIconSingle($product['item_name']) ?>"></i>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Product Info -->
@@ -161,16 +155,16 @@ function getStoneIconSingle($name) {
                     </div>
 
                     <div class="single-meta">
-                        <strong>Measurement:</strong> <?= htmlspecialchars($product['stone_measurement'] ?? 'Standard Size') ?><br>
-                        <strong>Warehouse:</strong> <?= htmlspecialchars($product['warehouse_location'] ?? 'Main Warehouse') ?><br>
-                        <strong>Stock Status:</strong> 
+                        <strong><?= t('measurement') ?>:</strong> <?= htmlspecialchars($product['stone_measurement'] ?? t('standard_size')) ?><br>
+                        <strong><?= t('warehouse') ?>:</strong> <?= htmlspecialchars($product['warehouse_location'] ?? t('main_warehouse')) ?><br>
+                        <strong><?= t('stock_status') ?>:</strong> 
                         <?php if ((int)($product['quantity_in_stock'] ?? 0) > 0): ?>
                             <span style="color: #16a34a; font-weight: 600;">
-                                <i class="fa-solid fa-circle-check"></i> In Stock (<?= (int)$product['quantity_in_stock'] ?> available)
+                                <i class="fa-solid fa-circle-check"></i> <?= t('in_stock') ?> (<?= (int)$product['quantity_in_stock'] ?> <?= t('available') ?>)
                             </span>
                         <?php else: ?>
                             <span style="color: #dc2626; font-weight: 600;">
-                                <i class="fa-solid fa-circle-xmark"></i> Out of Stock
+                                <i class="fa-solid fa-circle-xmark"></i> <?= t('out_of_stock') ?>
                             </span>
                         <?php endif; ?>
                     </div>
@@ -179,7 +173,7 @@ function getStoneIconSingle($name) {
                     <form method="POST">
                         <input type="hidden" name="action" value="add_to_cart">
 
-                        <label style="font-weight: 600; font-size: 0.9rem; color: var(--store-primary); display: block; margin-bottom: 0.5rem;">Quantity</label>
+                        <label style="font-weight: 600; font-size: 0.9rem; color: var(--store-primary); display: block; margin-bottom: 0.5rem;"><?= t('quantity') ?></label>
                         <div class="qty-control">
                             <button type="button" onclick="changeQty(-1)">−</button>
                             <input type="number" name="quantity" id="qtyInput" value="1" min="1" max="<?= max(1, (int)($product['quantity_in_stock'] ?? 9999)) ?>">
@@ -187,23 +181,34 @@ function getStoneIconSingle($name) {
                         </div>
 
                         <div class="form-group">
-                            <label>Custom Description / Project Notes</label>
-                            <textarea name="custom_description" rows="4" placeholder="e.g. Cut to 40×40cm panels, polished finish, for hotel lobby project..."></textarea>
+                            <label><?= t('custom_description') ?></label>
+                            <textarea name="custom_description" rows="4" placeholder="<?= t('custom_desc_placeholder') ?>"></textarea>
                         </div>
 
-                        <button type="submit" class="btn-add-cart">
-                            <i class="fa-solid fa-cart-plus"></i> Add to Cart
-                        </button>
+                        <?php if ($isLoggedIn): ?>
+                            <button type="submit" class="btn-add-cart">
+                                <i class="fa-solid fa-cart-plus"></i> <?= t('add_to_cart') ?>
+                            </button>
+                        <?php else: ?>
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+                                <a href="<?= BASE_URL ?>/modules/auth/login.php" class="btn-add-cart" style="text-align: center; text-decoration: none;">
+                                    <?= t('sign_up_to_order') ?>
+                                </a>
+                                <a href="<?= BASE_URL ?>/modules/auth/login.php" class="btn-continue" style="text-align: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                                    <?= t('log_in') ?>
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     </form>
 
                     <!-- Quick Links -->
                     <div style="margin-top: 2rem; display: flex; gap: 1rem;">
                         <a href="<?= BASE_URL ?>/shop.php" class="btn-continue">
-                            <i class="fa-solid fa-arrow-left"></i> Continue Shopping
+                            <i class="fa-solid fa-arrow-left"></i> <?= t('continue_shopping') ?>
                         </a>
                         <?php if ($cartCount > 0): ?>
                             <a href="<?= BASE_URL ?>/cart.php" class="btn-continue" style="background: var(--store-accent); color: #fff;">
-                                <i class="fa-solid fa-bag-shopping"></i> View Cart (<?= $cartCount ?>)
+                                <i class="fa-solid fa-bag-shopping"></i> <?= t('view_cart') ?> (<?= $cartCount ?>)
                             </a>
                         <?php endif; ?>
                     </div>
@@ -214,15 +219,7 @@ function getStoneIconSingle($name) {
     </div>
 
     <!-- Footer -->
-    <footer style="background: #0f172a; color: #94a3b8; padding: 3rem 2rem; text-align: center; margin-top: 4rem;">
-        <div style="max-width: 1200px; margin: auto;">
-            <div style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 0.5rem;">
-                <i class="fa-solid fa-gem" style="margin-right: 8px; color: #6366f1;"></i> MiskStone
-            </div>
-            <p style="margin-bottom: 0.5rem;">مسك للحجر الصناعي والديكور</p>
-            <p style="font-size: 0.8rem; margin-top: 1rem; opacity: 0.6;">&copy; <?= date('Y') ?> MiskStone. Powered by AURA ERP.</p>
-        </div>
-    </footer>
+    <?php include __DIR__ . '/includes/store_footer.php'; ?>
 
     <script>
         function changeQty(delta) {

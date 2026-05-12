@@ -1,66 +1,15 @@
 <?php
+/**
+ * AURA ERP — Executive Dashboard (Live Filtered)
+ * All chart data loads via AJAX from /modules/api/dashboard_data.php
+ */
+
+// Initial server-side data for first paint
 $revenueMonth = $pdo->query("SELECT COALESCE(SUM(amount),0) FROM finance_ledger WHERE transaction_type = 'Income' AND MONTH(transaction_date) = MONTH(CURRENT_DATE())")->fetchColumn();
 $expensesMonth = $pdo->query("SELECT COALESCE(SUM(amount),0) FROM finance_ledger WHERE transaction_type = 'Expense' AND MONTH(transaction_date) = MONTH(CURRENT_DATE())")->fetchColumn();
 $profit = $revenueMonth - $expensesMonth;
-
 $activeOrders = $pdo->query("SELECT COUNT(*) FROM sales_orders WHERE order_status != 'Delivered'")->fetchColumn();
-
-// Fetch Recent Financial Transactions
-$transactions = $pdo->query("
-    SELECT transaction_id, transaction_date, transaction_type, category, amount 
-    FROM finance_ledger 
-    ORDER BY transaction_date DESC LIMIT 5
-")->fetchAll();
-
-// ── Chart Data ──
-
-// Revenue vs Expenses Trend (last 6 months)
-$revenueTrend = $pdo->query("
-    SELECT DATE_FORMAT(transaction_date, '%Y-%m') as month,
-           SUM(CASE WHEN transaction_type='Income' THEN amount ELSE 0 END) as income,
-           SUM(CASE WHEN transaction_type='Expense' THEN amount ELSE 0 END) as expenses
-    FROM finance_ledger
-    GROUP BY DATE_FORMAT(transaction_date, '%Y-%m')
-    ORDER BY month ASC
-    LIMIT 6
-")->fetchAll(PDO::FETCH_ASSOC);
-
-// Sales by Product Category
-$salesByCategory = $pdo->query("
-    SELECT im.category, SUM(sol.quantity * sol.unit_price) as revenue
-    FROM so_line_items sol
-    JOIN item_master im ON sol.item_id = im.item_id
-    JOIN sales_orders so ON sol.so_id = so.so_id
-    GROUP BY im.category
-    ORDER BY revenue DESC
-")->fetchAll(PDO::FETCH_ASSOC);
-
-// Fallback if so_line_items doesn't exist
-if (empty($salesByCategory)) {
-    try {
-        $salesByCategory = $pdo->query("
-            SELECT im.category, COUNT(*) as revenue
-            FROM production_orders po
-            JOIN item_master im ON po.item_id = im.item_id
-            GROUP BY im.category
-        ")->fetchAll(PDO::FETCH_ASSOC);
-    } catch (Exception $e) { $salesByCategory = []; }
-}
-
-// Production Orders by Status
-$prodByStatus = $pdo->query("
-    SELECT status, COUNT(*) as cnt
-    FROM production_orders
-    GROUP BY status
-")->fetchAll(PDO::FETCH_ASSOC);
-
-// Order Pipeline Summary
-$orderPipeline = $pdo->query("
-    SELECT order_status, COUNT(*) as cnt
-    FROM sales_orders
-    GROUP BY order_status
-    ORDER BY FIELD(order_status, 'In Production', 'Pending Delivery', 'Delivered')
-")->fetchAll(PDO::FETCH_ASSOC);
+$categories = $pdo->query("SELECT DISTINCT category FROM finance_ledger WHERE category IS NOT NULL ORDER BY category")->fetchAll(PDO::FETCH_COLUMN);
 ?>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -71,42 +20,93 @@ $orderPipeline = $pdo->query("
         <p>MiskStone Factory Financial Overview & Status</p>
     </div>
 
+    <!-- ═══ FILTER BAR ═══ -->
+    <div class="card" style="margin-top: 1.5rem; padding: 1.25rem 1.5rem;">
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+            <!-- Period Granularity -->
+            <div style="flex: 0 0 auto;">
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem;">Granularity</label>
+                <div id="periodBtns" style="display: flex; gap: 2px; background: var(--bg-secondary); border-radius: 8px; padding: 2px;">
+                    <button class="period-btn" data-val="daily">Daily</button>
+                    <button class="period-btn" data-val="weekly">Weekly</button>
+                    <button class="period-btn active" data-val="monthly">Monthly</button>
+                    <button class="period-btn" data-val="yearly">Yearly</button>
+                </div>
+            </div>
+            <!-- Date Range -->
+            <div style="flex: 1; min-width: 120px;">
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem;">From</label>
+                <input type="date" id="filterFrom" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-primary); border-radius: 6px; font-family: inherit; font-size: 0.85rem; background: var(--bg-primary); color: var(--text-primary);">
+            </div>
+            <div style="flex: 1; min-width: 120px;">
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem;">To</label>
+                <input type="date" id="filterTo" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-primary); border-radius: 6px; font-family: inherit; font-size: 0.85rem; background: var(--bg-primary); color: var(--text-primary);">
+            </div>
+            <!-- Amount Range -->
+            <div style="flex: 0 0 100px;">
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem;">Min JOD</label>
+                <input type="number" id="filterMinAmt" placeholder="0" min="0" step="50" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-primary); border-radius: 6px; font-family: inherit; font-size: 0.85rem; background: var(--bg-primary); color: var(--text-primary);">
+            </div>
+            <div style="flex: 0 0 100px;">
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem;">Max JOD</label>
+                <input type="number" id="filterMaxAmt" placeholder="∞" min="0" step="50" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-primary); border-radius: 6px; font-family: inherit; font-size: 0.85rem; background: var(--bg-primary); color: var(--text-primary);">
+            </div>
+            <!-- Type -->
+            <div style="flex: 0 0 120px;">
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem;">Type</label>
+                <select id="filterType" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-primary); border-radius: 6px; font-family: inherit; font-size: 0.85rem; background: var(--bg-primary); color: var(--text-primary);">
+                    <option value="all">All</option>
+                    <option value="Income">Income</option>
+                    <option value="Expense">Expense</option>
+                </select>
+            </div>
+            <!-- Category -->
+            <div style="flex: 0 0 150px;">
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem;">Category</label>
+                <select id="filterCategory" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-primary); border-radius: 6px; font-family: inherit; font-size: 0.85rem; background: var(--bg-primary); color: var(--text-primary);">
+                    <option value="">All Categories</option>
+                    <?php foreach ($categories as $cat): ?>
+                        <option value="<?= htmlspecialchars($cat) ?>"><?= htmlspecialchars($cat) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <!-- Reset -->
+            <div style="flex: 0 0 auto;">
+                <button id="resetFilters" style="padding: 0.5rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.85rem; color: var(--text-secondary); transition: 0.2s;" onmouseover="this.style.background='var(--accent-primary)';this.style.color='#fff'" onmouseout="this.style.background='var(--bg-secondary)';this.style.color='var(--text-secondary)'">
+                    <i class="fa-solid fa-rotate-left" style="margin-right: 4px;"></i> Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Stats Grid -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon info" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
-                <i class="fa-solid fa-money-bill-trend-up"></i>
-            </div>
+            <div class="stat-icon info" style="background: rgba(16, 185, 129, 0.1); color: #10b981;"><i class="fa-solid fa-money-bill-trend-up"></i></div>
             <div class="stat-info">
-                <h3>Monthly Revenue</h3>
-                <p class="stat-value"><?= number_format($revenueMonth) ?> JOD</p>
-                <span class="stat-trend positive">Total Income</span>
+                <h3>Revenue</h3>
+                <p class="stat-value" id="kpiRevenue"><?= number_format($revenueMonth) ?> JOD</p>
+                <span class="stat-trend positive">Filtered Period</span>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon warning" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
-                <i class="fa-solid fa-money-bill-transfer"></i>
-            </div>
+            <div class="stat-icon warning" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;"><i class="fa-solid fa-money-bill-transfer"></i></div>
             <div class="stat-info">
-                <h3>Monthly Expenses</h3>
-                <p class="stat-value"><?= number_format($expensesMonth) ?> JOD</p>
-                <span class="stat-trend negative">Total Outflow</span>
+                <h3>Expenses</h3>
+                <p class="stat-value" id="kpiExpenses"><?= number_format($expensesMonth) ?> JOD</p>
+                <span class="stat-trend negative">Filtered Period</span>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon success" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
-                <i class="fa-solid fa-piggy-bank"></i>
-            </div>
+            <div class="stat-icon success" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;"><i class="fa-solid fa-piggy-bank"></i></div>
             <div class="stat-info">
                 <h3>Net Profit</h3>
-                <p class="stat-value"><?= number_format($profit) ?> JOD</p>
-                <span class="stat-trend neutral">This Month</span>
+                <p class="stat-value" id="kpiProfit"><?= number_format($profit) ?> JOD</p>
+                <span class="stat-trend neutral">Filtered Period</span>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon primary">
-                <i class="fa-solid fa-layer-group"></i>
-            </div>
+            <div class="stat-icon primary"><i class="fa-solid fa-layer-group"></i></div>
             <div class="stat-info">
                 <h3>Active Operations</h3>
                 <p class="stat-value"><?= $activeOrders ?></p>
@@ -119,11 +119,11 @@ $orderPipeline = $pdo->query("
     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
         <div class="card">
             <div class="card-header"><h3><i class="fa-solid fa-chart-line" style="margin-right: 0.5rem; color: var(--accent-primary);"></i>Revenue vs Expenses Trend</h3></div>
-            <div style="padding: 1rem;"><canvas id="execRevenueTrend" height="120"></canvas></div>
+            <div style="padding: 1rem; position: relative; height: 300px; width: 100%;"><canvas id="execRevenueTrend"></canvas></div>
         </div>
         <div class="card">
             <div class="card-header"><h3><i class="fa-solid fa-tags" style="margin-right: 0.5rem; color: #f59e0b;"></i>Sales by Category</h3></div>
-            <div style="padding: 1rem;"><canvas id="execSalesCategory" height="200"></canvas></div>
+            <div style="padding: 1rem; position: relative; height: 300px; width: 100%;"><canvas id="execSalesCategory"></canvas></div>
         </div>
     </div>
 
@@ -131,171 +131,185 @@ $orderPipeline = $pdo->query("
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
         <div class="card">
             <div class="card-header"><h3><i class="fa-solid fa-industry" style="margin-right: 0.5rem; color: #8b5cf6;"></i>Production Orders by Status</h3></div>
-            <div style="padding: 1rem; display: flex; justify-content: center;"><canvas id="execProdStatus" height="200" style="max-width: 280px;"></canvas></div>
+            <div style="padding: 1rem; position: relative; height: 300px; width: 100%; display: flex; justify-content: center;"><canvas id="execProdStatus"></canvas></div>
         </div>
         <div class="card">
             <div class="card-header"><h3><i class="fa-solid fa-layer-group" style="margin-right: 0.5rem; color: #06b6d4;"></i>Sales Order Pipeline</h3></div>
-            <div style="padding: 1rem;"><canvas id="execOrderPipeline" height="200"></canvas></div>
+            <div style="padding: 1rem; position: relative; height: 300px; width: 100%;"><canvas id="execOrderPipeline"></canvas></div>
         </div>
     </div>
 
     <!-- Financial Breakdown -->
     <div class="card" style="margin-top: 1.5rem;">
-        <div class="card-header">
-            <h3>Recent Cash Flow</h3>
+        <div class="card-header"><h3>Cash Flow Transactions</h3></div>
+        <div style="overflow-x: auto;">
+            <table class="data-table" id="txnTable">
+                <thead>
+                    <tr><th>Date</th><th>ID</th><th>Category</th><th>Type</th><th>Amount</th></tr>
+                </thead>
+                <tbody id="txnBody">
+                    <tr><td colspan="5" style="text-align:center; color:var(--text-secondary); padding: 2rem;">Loading...</td></tr>
+                </tbody>
+            </table>
         </div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Transaction ID</th>
-                    <th>Category</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($transactions as $txn): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($txn['transaction_date']) ?></td>
-                        <td style="font-weight:600;">
-                            <a href="<?= BASE_URL ?>/app.php?view=accounting" style="color:var(--accent-primary); text-decoration:none;">
-                                <i class="fa-solid fa-link" style="font-size:0.8rem; margin-right:4px; opacity:0.7;"></i><?= htmlspecialchars($txn['transaction_id']) ?>
-                            </a>
-                        </td>
-                        <td><?= htmlspecialchars($txn['category']) ?></td>
-                        <td>
-                            <span class="badge <?= $txn['transaction_type'] === 'Income' ? 'completed' : 'pending' ?>">
-                                <?= $txn['transaction_type'] ?>
-                            </span>
-                        </td>
-                        <td style="font-weight:600; color: <?= $txn['transaction_type'] === 'Income' ? '#10b981' : '#ef4444' ?>">
-                            <?= $txn['transaction_type'] === 'Income' ? '+' : '-' ?><?= number_format($txn['amount'], 2) ?> JOD
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
     </div>
 </div>
 
+<style>
+.period-btn {
+    padding: 0.4rem 0.85rem; border: none; background: transparent; color: var(--text-secondary);
+    font-family: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    border-radius: 6px; transition: 0.2s;
+}
+.period-btn.active { background: var(--accent-primary); color: #fff; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
+.period-btn:hover:not(.active) { background: var(--bg-primary); }
+
+@media (max-width: 900px) {
+    div[style*="grid-template-columns: 2fr 1fr"] { grid-template-columns: 1fr !important; }
+    div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+}
+</style>
+
 <script>
-// Color palette
-const chartColors = {
-    purple: '#6366f1', green: '#10b981', red: '#ef4444', amber: '#f59e0b',
-    cyan: '#06b6d4', violet: '#8b5cf6', pink: '#ec4899', slate: '#64748b',
-    blue: '#3b82f6', emerald: '#059669'
-};
-const bgPalette = ['rgba(99,102,241,0.7)','rgba(245,158,11,0.7)','rgba(16,185,129,0.7)','rgba(236,72,153,0.7)','rgba(6,182,212,0.7)','rgba(139,92,246,0.7)','rgba(239,68,68,0.7)','rgba(100,116,139,0.7)'];
+(function() {
+    const BASE = '<?= BASE_URL ?>';
+    const chartColors = {
+        purple: '#6366f1', green: '#10b981', red: '#ef4444', amber: '#f59e0b',
+        cyan: '#06b6d4', violet: '#8b5cf6', pink: '#ec4899', slate: '#64748b',
+        blue: '#3b82f6', emerald: '#059669'
+    };
+    const bgPalette = ['rgba(99,102,241,0.7)','rgba(245,158,11,0.7)','rgba(16,185,129,0.7)','rgba(236,72,153,0.7)','rgba(6,182,212,0.7)','rgba(139,92,246,0.7)','rgba(239,68,68,0.7)','rgba(100,116,139,0.7)'];
+    const statusColors = { 'Planned': chartColors.slate, 'Mixing': chartColors.amber, 'Curing': chartColors.violet, 'Completed': chartColors.green, 'Failed': chartColors.red, 'Archived': '#94a3b8' };
+    const pipeColors = { 'In Production': chartColors.purple, 'Pending Delivery': chartColors.amber, 'Delivered': chartColors.green, 'New': chartColors.cyan, 'Confirmed': chartColors.blue };
 
-// 1. Revenue vs Expenses Trend (Line chart)
-const revData = <?= json_encode($revenueTrend) ?>;
-new Chart(document.getElementById('execRevenueTrend'), {
-    type: 'line',
-    data: {
-        labels: revData.map(r => {
-            const [y, m] = r.month.split('-');
-            return new Date(y, m-1).toLocaleString('en', {month:'short', year:'2-digit'});
-        }),
-        datasets: [
-            {
-                label: 'Income',
-                data: revData.map(r => r.income),
-                borderColor: chartColors.green,
-                backgroundColor: 'rgba(16,185,129,0.1)',
-                fill: true,
-                tension: 0.4,
-                borderWidth: 2.5,
-                pointRadius: 4,
-                pointBackgroundColor: chartColors.green
-            },
-            {
-                label: 'Expenses',
-                data: revData.map(r => r.expenses),
-                borderColor: chartColors.red,
-                backgroundColor: 'rgba(239,68,68,0.08)',
-                fill: true,
-                tension: 0.4,
-                borderWidth: 2.5,
-                pointRadius: 4,
-                pointBackgroundColor: chartColors.red
+    // Chart instances
+    let trendChart, catChart, prodChart, pipeChart;
+    const commonOpts = { responsive: true, maintainAspectRatio: false };
+
+    function initCharts() {
+        trendChart = new Chart(document.getElementById('execRevenueTrend'), {
+            type: 'line', data: { labels: [], datasets: [
+                { label: 'Income', data: [], borderColor: chartColors.green, backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: chartColors.green },
+                { label: 'Expenses', data: [], borderColor: chartColors.red, backgroundColor: 'rgba(239,68,68,0.08)', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: chartColors.red }
+            ]},
+            options: { ...commonOpts, interaction: { intersect: false, mode: 'index' }, plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle' } } }, scales: { y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString() + ' JOD' } } } }
+        });
+        catChart = new Chart(document.getElementById('execSalesCategory'), {
+            type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: bgPalette, borderWidth: 2, borderColor: '#fff', hoverOffset: 6 }] },
+            options: { ...commonOpts, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } } } }
+        });
+        prodChart = new Chart(document.getElementById('execProdStatus'), {
+            type: 'pie', data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 2, borderColor: '#fff' }] },
+            options: { ...commonOpts, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } } } }
+        });
+        pipeChart = new Chart(document.getElementById('execOrderPipeline'), {
+            type: 'bar', data: { labels: [], datasets: [{ label: 'Orders', data: [], backgroundColor: [], borderRadius: 8, barThickness: 28 }] },
+            options: { ...commonOpts, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } }, y: { grid: { display: false } } } }
+        });
+    }
+
+    function getFilters() {
+        const active = document.querySelector('.period-btn.active');
+        return {
+            period: active ? active.dataset.val : 'monthly',
+            from: document.getElementById('filterFrom').value,
+            to: document.getElementById('filterTo').value,
+            min_amt: document.getElementById('filterMinAmt').value,
+            max_amt: document.getElementById('filterMaxAmt').value,
+            type: document.getElementById('filterType').value,
+            category: document.getElementById('filterCategory').value,
+        };
+    }
+
+    async function loadData() {
+        const f = getFilters();
+        const params = new URLSearchParams(f).toString();
+        try {
+            const res = await fetch(BASE + '/modules/api/dashboard_data.php?' + params);
+            const d = await res.json();
+            if (d.error) return;
+
+            // KPIs
+            document.getElementById('kpiRevenue').textContent = d.totalIncome.toLocaleString() + ' JOD';
+            document.getElementById('kpiExpenses').textContent = d.totalExpenses.toLocaleString() + ' JOD';
+            document.getElementById('kpiProfit').textContent = d.profit.toLocaleString() + ' JOD';
+
+            // Revenue trend
+            trendChart.data.labels = d.revenueTrend.map(r => r.period_label);
+            trendChart.data.datasets[0].data = d.revenueTrend.map(r => parseFloat(r.income));
+            trendChart.data.datasets[1].data = d.revenueTrend.map(r => parseFloat(r.expenses));
+            trendChart.update();
+
+            // Sales by category
+            catChart.data.labels = d.salesByCategory.map(c => c.category || 'Other');
+            catChart.data.datasets[0].data = d.salesByCategory.map(c => parseFloat(c.revenue));
+            catChart.update();
+
+            // Production status
+            prodChart.data.labels = d.prodByStatus.map(p => p.status);
+            prodChart.data.datasets[0].data = d.prodByStatus.map(p => parseInt(p.cnt));
+            prodChart.data.datasets[0].backgroundColor = d.prodByStatus.map(p => statusColors[p.status] || chartColors.slate);
+            prodChart.update();
+
+            // Order pipeline
+            pipeChart.data.labels = d.orderPipeline.map(p => p.order_status);
+            pipeChart.data.datasets[0].data = d.orderPipeline.map(p => parseInt(p.cnt));
+            pipeChart.data.datasets[0].backgroundColor = d.orderPipeline.map(p => pipeColors[p.order_status] || chartColors.slate);
+            pipeChart.update();
+
+            // Transactions table
+            const tbody = document.getElementById('txnBody');
+            if (d.transactions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-secondary); padding: 2rem;">No transactions match your filters.</td></tr>';
+            } else {
+                tbody.innerHTML = d.transactions.map(t => `
+                    <tr>
+                        <td>${t.transaction_date}</td>
+                        <td style="font-weight:600;">${t.transaction_id}</td>
+                        <td>${t.category || '—'}</td>
+                        <td><span class="badge ${t.transaction_type === 'Income' ? 'completed' : 'pending'}">${t.transaction_type}</span></td>
+                        <td style="font-weight:600; color:${t.transaction_type === 'Income' ? '#10b981' : '#ef4444'}">${t.transaction_type === 'Income' ? '+' : '-'}${parseFloat(t.amount).toLocaleString(undefined, {minimumFractionDigits:2})} JOD</td>
+                    </tr>
+                `).join('');
             }
-        ]
-    },
-    options: {
-        responsive: true,
-        interaction: { intersect: false, mode: 'index' },
-        plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle' } } },
-        scales: { y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString() + ' JOD' } } }
-    }
-});
-
-// 2. Sales by Category (Doughnut)
-const catData = <?= json_encode($salesByCategory) ?>;
-new Chart(document.getElementById('execSalesCategory'), {
-    type: 'doughnut',
-    data: {
-        labels: catData.map(c => c.category || 'Other'),
-        datasets: [{
-            data: catData.map(c => c.revenue),
-            backgroundColor: bgPalette,
-            borderWidth: 2,
-            borderColor: '#fff',
-            hoverOffset: 6
-        }]
-    },
-    options: {
-        responsive: true,
-        cutout: '60%',
-        plugins: {
-            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } }
+        } catch (e) {
+            console.error('Dashboard fetch error:', e);
         }
     }
-});
 
-// 3. Production Orders by Status (Pie)
-const prodData = <?= json_encode($prodByStatus) ?>;
-const statusColors = { 'Planned': chartColors.slate, 'Mixing': chartColors.amber, 'Curing': chartColors.violet, 'Completed': chartColors.green, 'Failed': chartColors.red };
-new Chart(document.getElementById('execProdStatus'), {
-    type: 'pie',
-    data: {
-        labels: prodData.map(p => p.status),
-        datasets: [{
-            data: prodData.map(p => p.cnt),
-            backgroundColor: prodData.map(p => statusColors[p.status] || chartColors.slate),
-            borderWidth: 2,
-            borderColor: '#fff'
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } } }
-    }
-});
+    // Init
+    initCharts();
+    loadData();
 
-// 4. Sales Order Pipeline (Horizontal bar)
-const pipeData = <?= json_encode($orderPipeline) ?>;
-const pipeColors = { 'In Production': chartColors.purple, 'Pending Delivery': chartColors.amber, 'Delivered': chartColors.green, 'New': chartColors.cyan, 'Confirmed': chartColors.blue };
-new Chart(document.getElementById('execOrderPipeline'), {
-    type: 'bar',
-    data: {
-        labels: pipeData.map(p => p.order_status),
-        datasets: [{
-            label: 'Orders',
-            data: pipeData.map(p => p.cnt),
-            backgroundColor: pipeData.map(p => pipeColors[p.order_status] || chartColors.slate),
-            borderRadius: 8,
-            barThickness: 28
-        }]
-    },
-    options: {
-        indexAxis: 'y',
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-            x: { beginAtZero: true, ticks: { stepSize: 1 } },
-            y: { grid: { display: false } }
-        }
-    }
-});
+    // Period buttons
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadData();
+        });
+    });
+
+    // All other filters — debounced live update
+    let debounceTimer;
+    ['filterFrom','filterTo','filterMinAmt','filterMaxAmt','filterType','filterCategory'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(loadData, 300);
+        });
+    });
+
+    // Reset
+    document.getElementById('resetFilters').addEventListener('click', () => {
+        document.getElementById('filterFrom').value = '';
+        document.getElementById('filterTo').value = '';
+        document.getElementById('filterMinAmt').value = '';
+        document.getElementById('filterMaxAmt').value = '';
+        document.getElementById('filterType').value = 'all';
+        document.getElementById('filterCategory').value = '';
+        document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.period-btn[data-val="monthly"]').classList.add('active');
+        loadData();
+    });
+})();
 </script>

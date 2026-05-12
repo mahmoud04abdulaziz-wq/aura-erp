@@ -276,7 +276,9 @@ foreach ($applications as $app) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('tab-' + tabId).classList.add('active');
-        event.target.closest('.tab-btn').classList.add('active');
+        // Find the button that corresponds to this tabId
+        const btn = document.querySelector(`.tab-btn[onclick*="'${tabId}'"]`);
+        if (btn) btn.classList.add('active');
     }
 
     async function updateAppStatus(appId, newStatus) {

@@ -689,20 +689,46 @@ ul {
         grid-template-columns: 1fr;
     }
 
+    /* Sidebar becomes an off-canvas drawer */
     .sidebar {
         transform: translateX(-100%);
+        width: 260px; /* Keep fixed width instead of 100% so it acts like a drawer */
+        position: fixed;
+        z-index: 999;
+    }
+
+    /* Reset margins for main content so it takes full width */
+    .main-content {
+        margin-left: 0 !important;
+        padding: 1rem;
         width: 100%;
     }
 
-    /* Reuse collapsed class to mean 'active' on mobile */
+    /* When active, slide it in */
     .sidebar.collapsed {
         transform: translateX(0);
-        width: 100%;
         display: flex !important;
-        /* Force visible */
         opacity: 1 !important;
         visibility: visible !important;
     }
+
+    /* Show labels on mobile even when active */
+    .sidebar.collapsed .brand-text,
+    .sidebar.collapsed .sidebar-nav span,
+    .sidebar.collapsed .sidebar-footer span,
+    .sidebar.collapsed .nav-group-label {
+        opacity: 1;
+        visibility: visible;
+        display: block;
+    }
+    .sidebar.collapsed .nav-group-label { display: block; }
+    
+    .stats-grid { grid-template-columns: 1fr; }
+    div[style*="grid-template-columns: 2fr 1fr"] { grid-template-columns: 1fr !important; }
+    div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+    
+    /* Make tables responsive */
+    .card { overflow-x: auto; }
 }
 
 /* --- ORDERS MODULE STYLES --- */
