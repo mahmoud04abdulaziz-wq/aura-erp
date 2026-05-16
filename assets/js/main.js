@@ -198,4 +198,19 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.disabled = false;
         }
     };
+
+    // --- SIDEBAR SCROLL PERSISTENCE ---
+    const sidebarNav = document.querySelector('.sidebar-nav');
+    if (sidebarNav) {
+        // Restore previous scroll position if it exists
+        const savedScroll = sessionStorage.getItem('sidebarScrollPosition');
+        if (savedScroll !== null) {
+            sidebarNav.scrollTop = parseInt(savedScroll, 10);
+        }
+
+        // Save scroll position right before the page unloads
+        window.addEventListener('beforeunload', () => {
+            sessionStorage.setItem('sidebarScrollPosition', sidebarNav.scrollTop);
+        });
+    }
 });

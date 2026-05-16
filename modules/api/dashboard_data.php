@@ -45,9 +45,11 @@ $fmt = $dateFormats[$period] ?? '%Y-%m';
 $trendWhere = [];
 $trendParams = [];
 
-if ($from) {
+$trendFrom = $_GET['trend_from'] ?? $from;
+
+if ($trendFrom) {
     $trendWhere[] = "transaction_date >= ?";
-    $trendParams[] = $from;
+    $trendParams[] = $trendFrom;
 }
 if ($to) {
     $trendWhere[] = "transaction_date <= ?";

@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lead_action'])) {
 
 // Fetch Web Leads with their structured items
 $webLeads = $pdo->query("
-    SELECT customer_id, company_name, contact_person, email, phone_number, default_address
+    SELECT customer_id, company_name, contact_person, email, phone_number, default_address, created_at
     FROM customers 
     WHERE lead_status = 'New'
     ORDER BY customer_id DESC
@@ -129,6 +129,10 @@ foreach ($webLeads as $lead) {
                                 </p>
                             </div>
                             <span style="background: #bae6fd; color: #0369a1; padding: 0.3rem 0.75rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700;">NEW LEAD</span>
+                        </div>
+                        <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.5rem;">
+                            <i class="fa-solid fa-clock" style="margin-right: 3px;"></i>
+                            Submitted <?= date('M d, Y \a\t g:ia', strtotime($lead['created_at'])) ?>
                         </div>
                     </div>
 

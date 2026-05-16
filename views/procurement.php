@@ -15,7 +15,7 @@ try {
     // Purchase Orders list with item info
     $purchaseOrders = $pdo->query(
         "SELECT po.po_id, po.order_date, po.total_amount, po.currency, po.order_status,
-                po.payment_status, po.delivery_location, po.requested_quantity,
+                po.payment_status, po.delivery_location, po.requested_quantity, po.received_at,
                 s.supplier_name, im.item_name
          FROM purchase_orders po
          JOIN suppliers s ON po.supplier_id = s.supplier_id
@@ -96,6 +96,7 @@ try {
                     <th>Order ID</th>
                     <th>Supplier</th>
                     <th>Order Date</th>
+                    <th>Received At</th>
                     <th>Amount</th>
                     <th>Payment</th>
                     <th>Status</th>
@@ -105,7 +106,7 @@ try {
             <tbody>
                 <?php if (empty($purchaseOrders)): ?>
                     <tr>
-                        <td colspan="7" style="text-align:center; color:var(--text-secondary); padding:3rem;">
+                        <td colspan="8" style="text-align:center; color:var(--text-secondary); padding:3rem;">
                             <i class="fa-solid fa-truck"
                                 style="font-size:2rem; opacity:0.3; display:block; margin-bottom:0.75rem;"></i>
                             No purchase orders found
@@ -134,6 +135,14 @@ try {
                                     <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:0.25rem;">
                                         <?= htmlspecialchars($po['item_name']) ?> (<?= number_format($po['requested_quantity'], 1) ?> units)
                                     </div>
+                                <?php endif; ?>
+                            </td>
+                            <td style="font-size: 0.85rem; color: var(--text-secondary);">
+                                <?php if ($po['received_at']): ?>
+                                    <i class="fa-solid fa-box-open" style="color: #22c55e; margin-right: 3px;"></i>
+                                    <?= date('M d, Y', strtotime($po['received_at'])) ?>
+                                <?php else: ?>
+                                    <span style="opacity: 0.5;">—</span>
                                 <?php endif; ?>
                             </td>
                             <td><span style="font-weight:600;">

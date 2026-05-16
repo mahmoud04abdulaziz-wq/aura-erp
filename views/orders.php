@@ -9,6 +9,7 @@
 try {
     $orders = $pdo->query(
         "SELECT so.so_id, so.order_date, so.total_price, so.order_status, so.payment_method,
+                so.updated_at, so.delivered_at,
                 c.company_name
          FROM sales_orders so
          JOIN customers c ON so.customer_id = c.customer_id
@@ -136,6 +137,7 @@ $badgeMap = [
                     <th>Order ID</th>
                     <th>Client</th>
                     <th>Order Date</th>
+                    <th>Last Updated</th>
                     <th>Amount</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -144,7 +146,7 @@ $badgeMap = [
             <tbody>
                 <?php if (empty($orders)): ?>
                     <tr>
-                        <td colspan="6" style="text-align:center; color:var(--text-secondary); padding:3rem;">
+                        <td colspan="7" style="text-align:center; color:var(--text-secondary); padding:3rem;">
                             <i class="fa-solid fa-inbox" style="font-size:2rem; opacity:0.3; display:block; margin-bottom:0.75rem;"></i>
                             No sales orders found
                         </td>
@@ -155,6 +157,17 @@ $badgeMap = [
                             <td><span style="font-weight:700; color:var(--accent-primary);"><?= htmlspecialchars($order['so_id']) ?></span></td>
                             <td><span style="font-weight:500;"><?= htmlspecialchars($order['company_name']) ?></span></td>
                             <td><?= date('M d, Y', strtotime($order['order_date'])) ?></td>
+                            <td style="color: var(--text-secondary); font-size: 0.85rem;">
+                                <?php if ($order['delivered_at']): ?>
+                                    <i class="fa-solid fa-truck" style="color: #10b981; margin-right: 3px;"></i>
+                                    <?= date('M d, Y', strtotime($order['delivered_at'])) ?>
+                                <?php elseif ($order['updated_at']): ?>
+                                    <i class="fa-solid fa-clock-rotate-left" style="margin-right: 3px;"></i>
+                                    <?= date('M d, Y', strtotime($order['updated_at'])) ?>
+                                <?php else: ?>
+                                    <span style="opacity: 0.5;">—</span>
+                                <?php endif; ?>
+                            </td>
                             <td><span style="font-family:monospace; font-weight:600;"><?= number_format($order['total_price'] ?? 0, 2) ?> JOD</span></td>
                             <td><span class="badge <?= $badgeMap[$order['order_status']] ?? 'pending' ?>"><?= htmlspecialchars($order['order_status']) ?></span></td>
                             <td>

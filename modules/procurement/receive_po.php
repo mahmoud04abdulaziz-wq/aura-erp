@@ -68,8 +68,8 @@ try {
             ->execute([$txId, $amount, "PO {$poId} — {$po['supplier_name']}", $userId]);
     }
 
-    // Update PO status
-    $pdo->prepare("UPDATE purchase_orders SET order_status = 'Received', payment_status = 'Paid' WHERE po_id = ?")->execute([$poId]);
+    // Update PO status + record received timestamp
+    $pdo->prepare("UPDATE purchase_orders SET order_status = 'Received', payment_status = 'Paid', received_at = NOW() WHERE po_id = ?")->execute([$poId]);
 
     // Notifications
     require_once __DIR__ . '/../../includes/notifications.php';

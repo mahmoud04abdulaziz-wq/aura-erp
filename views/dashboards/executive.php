@@ -339,6 +339,7 @@ $categories = $pdo->query("SELECT DISTINCT category FROM finance_ledger WHERE ca
         const period = active ? active.dataset.val : 'monthly';
         let from = document.getElementById('filterFrom').value;
         let to = document.getElementById('filterTo').value;
+        let trend_from = from;
 
         // If no manual date range set, auto-compute from period
         if (!from && !to) {
@@ -356,12 +357,28 @@ $categories = $pdo->query("SELECT DISTINCT category FROM finance_ledger WHERE ca
             } else if (period === 'yearly') {
                 from = `${now.getFullYear()}-01-01`;
             }
+
+            // Compute a wider 'trend_from' for the chart to show history
+            const td = new Date(now);
+            if (period === 'daily') {
+                td.setDate(td.getDate() - 14); // Last 14 days
+            } else if (period === 'weekly') {
+                td.setDate(td.getDate() - 56); // Last 8 weeks
+            } else if (period === 'monthly') {
+                td.setMonth(td.getMonth() - 5); // Last 6 months
+                td.setDate(1);
+            } else if (period === 'yearly') {
+                td.setFullYear(td.getFullYear() - 4); // Last 5 years
+                td.setMonth(0); td.setDate(1);
+            }
+            trend_from = `${td.getFullYear()}-${pad(td.getMonth()+1)}-${pad(td.getDate())}`;
         }
 
         return {
             period,
             from,
             to,
+            trend_from,
             min_amt: document.getElementById('filterMinAmt').value,
             max_amt: document.getElementById('filterMaxAmt').value,
             type: document.getElementById('filterType').value,

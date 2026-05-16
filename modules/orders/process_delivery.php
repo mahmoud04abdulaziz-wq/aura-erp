@@ -76,8 +76,8 @@ try {
     $pdo->prepare("INSERT INTO finance_ledger (transaction_id, transaction_date, transaction_type, category, amount, reference_id, recorded_by) VALUES (?, CURRENT_DATE(), 'Income', 'Sales Revenue', ?, ?, ?)")
         ->execute([$txId, $totalRevenue, "Delivery {$soId} — {$order['company_name']}", $userId]);
 
-    // 5. Update order status to Delivered
-    $pdo->prepare("UPDATE sales_orders SET order_status = 'Delivered' WHERE so_id = ?")->execute([$soId]);
+    // 5. Update order status to Delivered + record delivery timestamp
+    $pdo->prepare("UPDATE sales_orders SET order_status = 'Delivered', delivered_at = NOW() WHERE so_id = ?")->execute([$soId]);
 
     // 6. Notifications
     require_once __DIR__ . '/../../includes/notifications.php';
